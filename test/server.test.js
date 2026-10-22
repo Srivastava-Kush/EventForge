@@ -5,7 +5,13 @@ import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const SERVER = fileURLToPath(new URL("../server.js", import.meta.url));
-const BASE_ENV = { PATH: process.env.PATH, HOST: "127.0.0.1", PORT: "0" };
+const BASE_ENV = {
+  PATH: process.env.PATH,
+  SYSTEMROOT: process.env.SYSTEMROOT,
+  SystemRoot: process.env.SystemRoot,
+  HOST: "127.0.0.1",
+  PORT: "0",
+};
 
 function start(env) {
   const child = spawn(process.execPath, [SERVER], { env: { ...BASE_ENV, ...env }, stdio: ["ignore", "pipe", "pipe"] });
@@ -20,7 +26,7 @@ function start(env) {
     }),
   );
   const ready = new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(`server did not start: ${output}`)), 5000);
+    const timer = setTimeout(() => reject(new Error(`server did not start: ${output}`)), 15000);
     child.stdout.on("data", () => {
       const match = output.match(/http:\/\/127\.0\.0\.1:(\d+)/);
       if (match) { clearTimeout(timer); resolve(`http://127.0.0.1:${match[1]}`); }

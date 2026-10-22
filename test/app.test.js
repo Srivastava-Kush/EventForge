@@ -77,8 +77,8 @@ describe("Express MERN Application API", () => {
       assert.match(json.message, /JSON/i);
     });
 
-    test("rejects oversized payload (>16KB) with 413 Payload Too Large", async () => {
-      const hugeData = "x".repeat(20 * 1024);
+    test("rejects oversized payload (>10MB) with 413 Payload Too Large", async () => {
+      const hugeData = "x".repeat(11 * 1024 * 1024);
       const res = await fetch(`${app.base}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

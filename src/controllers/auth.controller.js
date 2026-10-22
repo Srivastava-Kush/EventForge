@@ -5,7 +5,7 @@ const isProd = process.env.NODE_ENV === "production";
 const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: isProd,
-  sameSite: isProd ? "strict" : "lax",
+  sameSite: isProd ? "none" : "lax",
   path: "/",
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
 };
@@ -43,7 +43,7 @@ export async function logout(req, res) {
   res.clearCookie("token", {
     httpOnly: true,
     secure: isProd,
-    sameSite: isProd ? "strict" : "lax",
+    sameSite: isProd ? "none" : "lax",
     path: "/",
   });
   return sendResponse(res, HTTP_STATUS.OK, true, null, "Logged out successfully.");

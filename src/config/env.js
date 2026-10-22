@@ -37,6 +37,7 @@ export function loadEnv(env = process.env) {
     jwtSecret: env.JWT_SECRET || "changeme-in-production",
     jwtExpiresIn: env.JWT_EXPIRES_IN || "7d",
     nodeEnv: env.NODE_ENV || "development",
+    corsOrigin: env.CORS_ORIGIN?.trim() || env.CLIENT_URL?.trim() || "",
   };
 }
 
