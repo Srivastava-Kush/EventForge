@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Clock,
   MapPin,
   User,
   Plus,
@@ -17,8 +16,8 @@ import {
 export default function EventSchedule({
   schedule = [],
   vendors = [],
-  eventName = '',
-  eventDate = '',
+  _eventName = '',
+  _eventDate = '',
   onAddScheduleItem,
   onUpdateScheduleItem,
   onDeleteScheduleItem,

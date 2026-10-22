@@ -1,7 +1,7 @@
 import React from 'react';
 import { CheckCircle2, Briefcase, DollarSign, Users, AlertTriangle, TrendingUp } from 'lucide-react';
 
-export default function PreparationDashboard({ metrics, eventType, onTabChange }) {
+export default function PreparationDashboard({ metrics, _eventType, onTabChange }) {
   if (!metrics) return null;
 
   const { overallProgress, tasks, vendors, budget, guests } = metrics;

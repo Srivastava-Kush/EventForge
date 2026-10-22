@@ -2,9 +2,7 @@ import React, { useState } from 'react';
 import {
   DollarSign,
   Plus,
-  AlertCircle,
   CheckCircle2,
-  PieChart,
   Trash2,
   Edit2,
   X,

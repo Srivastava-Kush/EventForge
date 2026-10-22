@@ -1,13 +1,11 @@
 import React, { useRef, useEffect, useState } from 'react';
 import {
-  MessageSquare,
   X,
   Minimize2,
   Maximize2,
   Sparkles,
   Bot,
   HelpCircle,
-  TrendingDown,
   Calendar,
   DollarSign,
   Compass,

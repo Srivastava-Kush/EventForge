@@ -362,16 +362,30 @@ export async function getUserEvents(userId) {
 }
 
 /**
+ * Fetches an event by ID and verifies user ownership.
+ * Ensures all interactive entity arrays (tasks, vendors, expenses, etc.) are initialized.
+ * Throws AppError 404 if not found or unauthorized.
+ *
+ * @param {string} eventId
+ * @param {string|import("mongoose").Types.ObjectId} userId
+ * @param {{ autoSave?: boolean }} [options]
+ * @returns {Promise<import("mongoose").Document>}
+ */
+export async function getOwnedEvent(eventId, userId, { autoSave = false } = {}) {
+  const event = await Event.findOne({ _id: eventId, user: userId });
+  if (!event) throw new AppError("Event not found.", HTTP_STATUS.NOT_FOUND);
+  const modified = ensureInteractiveEntities(event);
+  if (autoSave && modified) {
+    await event.save();
+  }
+  return event;
+}
+
+/**
  * Returns a single event by ID, enforcing ownership and attaching live metrics.
  */
 export async function getEventById(eventId, userId) {
-  const event = await Event.findOne({ _id: eventId, user: userId });
-  if (!event) throw new AppError("Event not found.", HTTP_STATUS.NOT_FOUND);
-
-  if (ensureInteractiveEntities(event)) {
-    await event.save();
-  }
-
+  const event = await getOwnedEvent(eventId, userId, { autoSave: true });
   const metrics = computeMetrics(event);
   const plain = event.toObject();
   plain.metrics = metrics;
@@ -392,9 +406,7 @@ export async function deleteEvent(eventId, userId) {
    ========================================================================== */
 
 export async function createTask(eventId, taskData, userId) {
-  const event = await Event.findOne({ _id: eventId, user: userId });
-  if (!event) throw new AppError("Event not found.", HTTP_STATUS.NOT_FOUND);
-  ensureInteractiveEntities(event);
+  const event = await getOwnedEvent(eventId, userId);
 
   if (!taskData.title?.trim()) {
     throw new AppError("Task title is required.", HTTP_STATUS.BAD_REQUEST);
@@ -419,9 +431,7 @@ export async function createTask(eventId, taskData, userId) {
 }
 
 export async function updateTask(eventId, taskId, updates, userId) {
-  const event = await Event.findOne({ _id: eventId, user: userId });
-  if (!event) throw new AppError("Event not found.", HTTP_STATUS.NOT_FOUND);
-  ensureInteractiveEntities(event);
+  const event = await getOwnedEvent(eventId, userId);
 
   const taskIndex = event.tasks.findIndex((t) => t.id === taskId);
   if (taskIndex === -1) throw new AppError("Task not found.", HTTP_STATUS.NOT_FOUND);
@@ -444,9 +454,7 @@ export async function updateTask(eventId, taskId, updates, userId) {
 }
 
 export async function deleteTask(eventId, taskId, userId) {
-  const event = await Event.findOne({ _id: eventId, user: userId });
-  if (!event) throw new AppError("Event not found.", HTTP_STATUS.NOT_FOUND);
-  ensureInteractiveEntities(event);
+  const event = await getOwnedEvent(eventId, userId);
 
   event.tasks = event.tasks.filter((t) => t.id !== taskId);
   await event.save();
@@ -458,9 +466,7 @@ export async function deleteTask(eventId, taskId, userId) {
    ========================================================================== */
 
 export async function createVendor(eventId, vendorData, userId) {
-  const event = await Event.findOne({ _id: eventId, user: userId });
-  if (!event) throw new AppError("Event not found.", HTTP_STATUS.NOT_FOUND);
-  ensureInteractiveEntities(event);
+  const event = await getOwnedEvent(eventId, userId);
 
   if (!vendorData.name?.trim()) {
     throw new AppError("Vendor category name is required.", HTTP_STATUS.BAD_REQUEST);
@@ -492,9 +498,7 @@ export async function createVendor(eventId, vendorData, userId) {
 }
 
 export async function updateVendor(eventId, vendorId, updates, userId) {
-  const event = await Event.findOne({ _id: eventId, user: userId });
-  if (!event) throw new AppError("Event not found.", HTTP_STATUS.NOT_FOUND);
-  ensureInteractiveEntities(event);
+  const event = await getOwnedEvent(eventId, userId);
 
   const vendorIndex = event.vendors.findIndex((v) => v.id === vendorId);
   if (vendorIndex === -1) throw new AppError("Vendor not found.", HTTP_STATUS.NOT_FOUND);
@@ -519,9 +523,7 @@ export async function updateVendor(eventId, vendorId, updates, userId) {
 }
 
 export async function deleteVendor(eventId, vendorId, userId) {
-  const event = await Event.findOne({ _id: eventId, user: userId });
-  if (!event) throw new AppError("Event not found.", HTTP_STATUS.NOT_FOUND);
-  ensureInteractiveEntities(event);
+  const event = await getOwnedEvent(eventId, userId);
 
   event.vendors = event.vendors.filter((v) => v.id !== vendorId);
   await event.save();
@@ -533,9 +535,7 @@ export async function deleteVendor(eventId, vendorId, userId) {
    ========================================================================== */
 
 export async function createExpense(eventId, expenseData, userId) {
-  const event = await Event.findOne({ _id: eventId, user: userId });
-  if (!event) throw new AppError("Event not found.", HTTP_STATUS.NOT_FOUND);
-  ensureInteractiveEntities(event);
+  const event = await getOwnedEvent(eventId, userId);
 
   if (!expenseData.title?.trim()) {
     throw new AppError("Expense title is required.", HTTP_STATUS.BAD_REQUEST);
@@ -569,9 +569,7 @@ export async function createExpense(eventId, expenseData, userId) {
 }
 
 export async function updateExpense(eventId, expenseId, updates, userId) {
-  const event = await Event.findOne({ _id: eventId, user: userId });
-  if (!event) throw new AppError("Event not found.", HTTP_STATUS.NOT_FOUND);
-  ensureInteractiveEntities(event);
+  const event = await getOwnedEvent(eventId, userId);
 
   const expIndex = event.expenses.findIndex((e) => e.id === expenseId);
   if (expIndex === -1) throw new AppError("Expense not found.", HTTP_STATUS.NOT_FOUND);
@@ -602,9 +600,7 @@ export async function updateExpense(eventId, expenseId, updates, userId) {
 }
 
 export async function deleteExpense(eventId, expenseId, userId) {
-  const event = await Event.findOne({ _id: eventId, user: userId });
-  if (!event) throw new AppError("Event not found.", HTTP_STATUS.NOT_FOUND);
-  ensureInteractiveEntities(event);
+  const event = await getOwnedEvent(eventId, userId);
 
   event.expenses = event.expenses.filter((e) => e.id !== expenseId);
   await event.save();
@@ -616,9 +612,7 @@ export async function deleteExpense(eventId, expenseId, userId) {
    ========================================================================== */
 
 export async function createGuest(eventId, guestData, userId) {
-  const event = await Event.findOne({ _id: eventId, user: userId });
-  if (!event) throw new AppError("Event not found.", HTTP_STATUS.NOT_FOUND);
-  ensureInteractiveEntities(event);
+  const event = await getOwnedEvent(eventId, userId);
 
   if (!guestData.name?.trim()) {
     throw new AppError("Guest name is required.", HTTP_STATUS.BAD_REQUEST);
@@ -646,9 +640,7 @@ export async function createGuest(eventId, guestData, userId) {
 }
 
 export async function updateGuest(eventId, guestId, updates, userId) {
-  const event = await Event.findOne({ _id: eventId, user: userId });
-  if (!event) throw new AppError("Event not found.", HTTP_STATUS.NOT_FOUND);
-  ensureInteractiveEntities(event);
+  const event = await getOwnedEvent(eventId, userId);
 
   const guestIndex = event.guests.findIndex((g) => g.id === guestId);
   if (guestIndex === -1) throw new AppError("Guest not found.", HTTP_STATUS.NOT_FOUND);
@@ -673,9 +665,7 @@ export async function updateGuest(eventId, guestId, updates, userId) {
 }
 
 export async function deleteGuest(eventId, guestId, userId) {
-  const event = await Event.findOne({ _id: eventId, user: userId });
-  if (!event) throw new AppError("Event not found.", HTTP_STATUS.NOT_FOUND);
-  ensureInteractiveEntities(event);
+  const event = await getOwnedEvent(eventId, userId);
 
   event.guests = event.guests.filter((g) => g.id !== guestId);
   await event.save();
@@ -683,9 +673,7 @@ export async function deleteGuest(eventId, guestId, userId) {
 }
 
 export async function importGuests(eventId, guestsList, userId) {
-  const event = await Event.findOne({ _id: eventId, user: userId });
-  if (!event) throw new AppError("Event not found.", HTTP_STATUS.NOT_FOUND);
-  ensureInteractiveEntities(event);
+  const event = await getOwnedEvent(eventId, userId);
 
   if (!Array.isArray(guestsList) || guestsList.length === 0) {
     throw new AppError("Guest list must be a non-empty array.", HTTP_STATUS.BAD_REQUEST);
@@ -732,9 +720,7 @@ export async function importGuests(eventId, guestsList, userId) {
    ========================================================================== */
 
 export async function createScheduleItem(eventId, itemData, userId) {
-  const event = await Event.findOne({ _id: eventId, user: userId });
-  if (!event) throw new AppError("Event not found.", HTTP_STATUS.NOT_FOUND);
-  ensureInteractiveEntities(event);
+  const event = await getOwnedEvent(eventId, userId);
 
   if (!itemData.startTime?.trim() || !itemData.activity?.trim()) {
     throw new AppError("Start time and activity are required.", HTTP_STATUS.BAD_REQUEST);
@@ -758,9 +744,7 @@ export async function createScheduleItem(eventId, itemData, userId) {
 }
 
 export async function updateScheduleItem(eventId, itemId, updates, userId) {
-  const event = await Event.findOne({ _id: eventId, user: userId });
-  if (!event) throw new AppError("Event not found.", HTTP_STATUS.NOT_FOUND);
-  ensureInteractiveEntities(event);
+  const event = await getOwnedEvent(eventId, userId);
 
   const idx = event.schedule.findIndex((s) => s.id === itemId);
   if (idx === -1) throw new AppError("Schedule item not found.", HTTP_STATUS.NOT_FOUND);
@@ -781,9 +765,7 @@ export async function updateScheduleItem(eventId, itemId, updates, userId) {
 }
 
 export async function deleteScheduleItem(eventId, itemId, userId) {
-  const event = await Event.findOne({ _id: eventId, user: userId });
-  if (!event) throw new AppError("Event not found.", HTTP_STATUS.NOT_FOUND);
-  ensureInteractiveEntities(event);
+  const event = await getOwnedEvent(eventId, userId);
 
   event.schedule = event.schedule.filter((s) => s.id !== itemId);
   await event.save();
@@ -798,8 +780,7 @@ export async function deleteScheduleItem(eventId, itemId, userId) {
  * Returns suggested poster styles and prompts tailored to the specific event.
  */
 export async function getPosterSuggestions(eventId, userId) {
-  const event = await Event.findOne({ _id: eventId, user: userId });
-  if (!event) throw new AppError("Event not found.", HTTP_STATUS.NOT_FOUND);
+  const event = await getOwnedEvent(eventId, userId);
 
   const eventName = event.plan?.summary?.eventName || event.input?.eventName || `${event.type || "Event"} Celebration`;
   const vibe = event.input?.vibe || "celebratory";
@@ -993,9 +974,7 @@ export async function generatePosterWithAi({ title, subtitle, date, location, st
 }
 
 export async function savePoster(eventId, posterData, userId) {
-  const event = await Event.findOne({ _id: eventId, user: userId });
-  if (!event) throw new AppError("Event not found.", HTTP_STATUS.NOT_FOUND);
-  ensureInteractiveEntities(event);
+  const event = await getOwnedEvent(eventId, userId);
 
   if (!posterData.imageData) {
     throw new AppError("Poster image data is required.", HTTP_STATUS.BAD_REQUEST);
@@ -1021,9 +1000,7 @@ export async function savePoster(eventId, posterData, userId) {
 }
 
 export async function deletePoster(eventId, posterId, userId) {
-  const event = await Event.findOne({ _id: eventId, user: userId });
-  if (!event) throw new AppError("Event not found.", HTTP_STATUS.NOT_FOUND);
-  ensureInteractiveEntities(event);
+  const event = await getOwnedEvent(eventId, userId);
 
   event.posters = event.posters.filter((p) => p.id !== posterId);
   await event.save();
@@ -1034,13 +1011,12 @@ export async function deletePoster(eventId, posterId, userId) {
  * Generates or regenerates personalized AI inspirations & creative themes for an event.
  */
 export async function generateEventIdeas(eventId, userId) {
-  const event = await Event.findOne({ _id: eventId, user: userId });
-  if (!event) throw new AppError("Event not found.", HTTP_STATUS.NOT_FOUND);
-  ensureInteractiveEntities(event);
+  const event = await getOwnedEvent(eventId, userId);
 
   const ideasResult = await getIdeasService().getIdeas(event.input, event.plan);
   event.ideas = ideasResult;
   await event.save();
   return { ideas: ideasResult };
 }
+
 

@@ -33,7 +33,7 @@ export default function TaskChecklist({ tasks = [], onToggleTask, onAddTask, onU
   const [formNotes, setFormNotes] = useState('');
   const [formAssignedTo, setFormAssignedTo] = useState('');
 
-  const todayIso = new Date().toISOString().slice(0, 10);
+  const [todayIso] = useState(() => new Date().toISOString().slice(0, 10));
 
   const filteredTasks = tasks.filter((t) => {
     if (filter === 'pending' && t.status === 'completed') return false;

@@ -52,12 +52,23 @@ export default function PosterStudio({
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [generating, setGenerating] = useState(false);
 
-  // Form parameters
+  // Form parameters initialized directly from eventData
   const [selectedStyle, setSelectedStyle] = useState('modern');
-  const [title, setTitle] = useState('');
-  const [subtitle, setSubtitle] = useState('');
-  const [date, setDate] = useState('');
-  const [location, setLocation] = useState('');
+  const [title, setTitle] = useState(() => {
+    const summary = eventData?.plan?.summary || {};
+    const input = eventData?.input || {};
+    return summary.eventName || input.eventName || `${eventData?.type || 'Celebration'} Party`;
+  });
+  const [subtitle, setSubtitle] = useState(() => eventData?.input?.vibe || 'Join us for an unforgettable celebration');
+  const [date, setDate] = useState(() => {
+    const summary = eventData?.plan?.summary || {};
+    const input = eventData?.input || {};
+    return summary.date || input.date || '';
+  });
+  const [location, setLocation] = useState(() => {
+    const input = eventData?.input || {};
+    return input.setting ? `${input.setting} Venue` : 'Grand Celebration Grounds';
+  });
   const [customPrompt, setCustomPrompt] = useState('');
 
   // Generated preview (supports both raster image base64 data URLs and SVG vector artwork)
@@ -66,17 +77,17 @@ export default function PosterStudio({
   const [posterType, setPosterType] = useState('image'); // 'image' | 'svg'
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // Initialize with event defaults
-  useEffect(() => {
-    if (eventData) {
-      const summary = eventData.plan?.summary || {};
-      const input = eventData.input || {};
-      setTitle(summary.eventName || input.eventName || `${eventData.type || 'Celebration'} Party`);
-      setSubtitle(input.vibe || 'Join us for an unforgettable celebration');
-      setDate(summary.date || input.date || '');
-      setLocation(input.setting ? `${input.setting} Venue` : 'Grand Celebration Grounds');
-    }
-  }, [eventData]);
+  // Synchronize state when switching between events without cascading effect warning
+  const [prevEventDataId, setPrevEventDataId] = useState(eventData?._id);
+  if (eventData && eventData._id !== prevEventDataId) {
+    setPrevEventDataId(eventData._id);
+    const summary = eventData.plan?.summary || {};
+    const input = eventData.input || {};
+    setTitle(summary.eventName || input.eventName || `${eventData.type || 'Celebration'} Party`);
+    setSubtitle(input.vibe || 'Join us for an unforgettable celebration');
+    setDate(summary.date || input.date || '');
+    setLocation(input.setting ? `${input.setting} Venue` : 'Grand Celebration Grounds');
+  }
 
   // Load suggested prompts from backend
   useEffect(() => {
@@ -141,13 +152,6 @@ export default function PosterStudio({
     }
   };
 
-  // Generate an initial poster preview once suggestions load
-  useEffect(() => {
-    if (title && !currentPoster) {
-      handleGenerate();
-    }
-  }, [title]);
-
   const handleSaveToEvent = async () => {
     if (!currentPoster) return;
     try {
@@ -209,6 +213,7 @@ export default function PosterStudio({
       <div className="my-4">
         <span className="text-xs font-semibold uppercase tracking-wider text-muted block mb-2">
           Recommended Aesthetic Styles for this Event:
+          {loadingSuggestions && <span className="ml-2 font-normal lowercase tracking-normal">(loading...)</span>}
         </span>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
           {suggestions.map((sug) => {

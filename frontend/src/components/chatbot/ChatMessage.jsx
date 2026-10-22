@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bot, User as UserIcon, Copy, Check, Sparkles } from 'lucide-react';
+import { User as UserIcon, Copy, Check, Sparkles } from 'lucide-react';
 
 export default function ChatMessage({ message }) {
   const isUser = message.role === 'user';

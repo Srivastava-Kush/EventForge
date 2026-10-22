@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Send, CornerDownLeft, Sparkles, X } from 'lucide-react';
+import { Send, Sparkles, X } from 'lucide-react';
 
 const QUICK_PROMPTS = [
   'Budget optimization tips',

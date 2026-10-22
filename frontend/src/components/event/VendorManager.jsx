@@ -2,12 +2,10 @@ import React, { useState } from 'react';
 import {
   Briefcase,
   Clock,
-  AlertCircle,
   Plus,
   Phone,
   Mail,
   User,
-  DollarSign,
   FileText,
   Edit2,
   Trash2,
