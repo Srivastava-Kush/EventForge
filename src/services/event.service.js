@@ -5,6 +5,7 @@ import { createIdeasService, generatePosterWithGemini } from "./llm.service.js";
 import Event from "../models/Event.model.js";
 import { AppError } from "../utils/AppError.js";
 import { HTTP_STATUS } from "../constants/httpStatus.js";
+import { sanitizeSvg } from "../utils/sanitizeSvg.js";
 
 // Shared ideas service instance — no client by default; replaced in configureEventService()
 let _ideasService = null;
@@ -690,22 +691,33 @@ export async function importGuests(eventId, guestsList, userId) {
     throw new AppError("Guest list must be a non-empty array.", HTTP_STATUS.BAD_REQUEST);
   }
 
+  if (guestsList.length > 500) {
+    throw new AppError("Cannot import more than 500 guests in a single request.", HTTP_STATUS.BAD_REQUEST);
+  }
+
+  if ((event.guests?.length || 0) + guestsList.length > 5000) {
+    throw new AppError("Event guest list cannot exceed 5000 guests.", HTTP_STATUS.BAD_REQUEST);
+  }
+
   const validNewGuests = [];
   for (const item of guestsList) {
-    if (!item.name || !String(item.name).trim()) continue;
+    if (!item || typeof item !== "object") continue;
+    const name = item.name ? String(item.name).trim().slice(0, 100) : "";
+    if (!name) continue;
+
     validNewGuests.push({
       id: `guest-${randomUUID().slice(0, 8)}`,
-      name: String(item.name).trim(),
-      email: item.email ? String(item.email).trim() : "",
-      phone: item.phone ? String(item.phone).trim() : "",
-      group: item.group ? String(item.group).trim() : "General",
+      name,
+      email: item.email ? String(item.email).trim().slice(0, 150) : "",
+      phone: item.phone ? String(item.phone).trim().slice(0, 30) : "",
+      group: item.group ? String(item.group).trim().slice(0, 50) : "General",
       invitationStatus: ["not_sent", "sent", "opened"].includes(item.invitationStatus) ? item.invitationStatus : "not_sent",
       rsvpStatus: ["pending", "attending", "declined", "tentative"].includes(item.rsvpStatus) ? item.rsvpStatus : "pending",
-      plusOnes: Math.max(0, parseInt(item.plusOnes, 10) || 0),
-      plusOneNames: item.plusOneNames ? String(item.plusOneNames).trim() : "",
-      dietary: item.dietary ? String(item.dietary).trim() : "",
-      tableOrSeating: item.tableOrSeating ? String(item.tableOrSeating).trim() : "",
-      notes: item.notes ? String(item.notes).trim() : "",
+      plusOnes: Math.min(20, Math.max(0, parseInt(item.plusOnes, 10) || 0)),
+      plusOneNames: item.plusOneNames ? String(item.plusOneNames).trim().slice(0, 200) : "",
+      dietary: item.dietary ? String(item.dietary).trim().slice(0, 200) : "",
+      tableOrSeating: item.tableOrSeating ? String(item.tableOrSeating).trim().slice(0, 50) : "",
+      notes: item.notes ? String(item.notes).trim().slice(0, 500) : "",
       updatedAt: new Date(),
     });
   }
@@ -966,9 +978,13 @@ export function generateSvgPoster({ title, subtitle, date, location, style = "mo
 export async function generatePosterWithAi({ title, subtitle, date, location, style = "modern", prompt = "", eventType = "event", engine = "auto" }) {
   const result = await generatePosterWithGemini({ title, subtitle, date, location, style, prompt, eventType, engine });
   if (result?.data) {
+    if (result.type === "svg" || typeof result.data === "string" && result.data.includes("<svg")) {
+      result.data = sanitizeSvg(result.data);
+      if (result.svg) result.svg = sanitizeSvg(result.svg);
+    }
     return result;
   }
-  const fallbackSvg = generateSvgPoster({ title, subtitle, date, location, style });
+  const fallbackSvg = sanitizeSvg(generateSvgPoster({ title, subtitle, date, location, style }));
   return {
     type: "svg",
     data: fallbackSvg,
@@ -985,12 +1001,17 @@ export async function savePoster(eventId, posterData, userId) {
     throw new AppError("Poster image data is required.", HTTP_STATUS.BAD_REQUEST);
   }
 
+  const cleanImageData = sanitizeSvg(posterData.imageData);
+  if (!cleanImageData) {
+    throw new AppError("Invalid or disallowed poster image data.", HTTP_STATUS.BAD_REQUEST);
+  }
+
   const newPoster = {
     id: `poster-${randomUUID().slice(0, 8)}`,
     title: posterData.title?.trim() || "Event Poster",
     prompt: posterData.prompt?.trim() || "Custom Design",
     style: posterData.style || "modern",
-    imageData: posterData.imageData,
+    imageData: cleanImageData,
     createdAt: new Date(),
   };
 

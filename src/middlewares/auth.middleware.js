@@ -19,7 +19,7 @@ export async function protect(req, res, next) {
   let decoded;
   try {
     const secret = process.env.JWT_SECRET || "changeme-in-production";
-    decoded = jwt.verify(token, secret);
+    decoded = jwt.verify(token, secret, { algorithms: ["HS256"] });
   } catch {
     return next(new AppError("Invalid or expired session. Please log in again.", HTTP_STATUS.UNAUTHORIZED));
   }

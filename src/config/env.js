@@ -34,7 +34,13 @@ export function loadEnv(env = process.env) {
     hasCredentials: Boolean(apiKey),
     apiKey,
     mongoUri: env.MONGODB_URI || "",
-    jwtSecret: env.JWT_SECRET || "changeme-in-production",
+    jwtSecret: (() => {
+      const secret = env.JWT_SECRET?.trim() || (env.NODE_ENV === "production" ? "" : "changeme-in-production");
+      if (env.NODE_ENV === "production" && (!secret || secret === "changeme-in-production")) {
+        throw new Error("JWT_SECRET must be configured with a secure secret in production.");
+      }
+      return secret;
+    })(),
     jwtExpiresIn: env.JWT_EXPIRES_IN || "7d",
     nodeEnv: env.NODE_ENV || "development",
     corsOrigin: env.CORS_ORIGIN?.trim() || env.CLIENT_URL?.trim() || "",

@@ -13,12 +13,23 @@ import {
 import { eventService } from '../../services/event.service.js';
 
 /**
- * Normalizes SVG markup so it scales responsively within its container without overflowing or clipping.
+ * Sanitizes and normalizes SVG markup so it scales responsively and cannot execute malicious script payloads.
  */
 function formatSvgPoster(rawSvg) {
-  if (!rawSvg || typeof rawSvg !== 'string') return rawSvg;
-  if (!rawSvg.includes('<svg')) return rawSvg;
-  return rawSvg.replace(/<svg\b([^>]*)>/i, (_match, attrs) => {
+  if (!rawSvg || typeof rawSvg !== 'string') return '';
+  if (!rawSvg.includes('<svg')) return '';
+
+  let sanitized = rawSvg
+    .replace(/<script\b[\s\S]*?<\/script>/gi, '')
+    .replace(/<foreignObject\b[\s\S]*?<\/foreignObject>/gi, '')
+    .replace(/<iframe\b[\s\S]*?<\/iframe>/gi, '')
+    .replace(/<object\b[\s\S]*?<\/object>/gi, '')
+    .replace(/<embed\b[^>]*\/?>/gi, '')
+    .replace(/\bon[a-z]+\s*=\s*(['"]).*?\1/gi, '')
+    .replace(/\bon[a-z]+\s*=[^\s>]+/gi, '')
+    .replace(/\b(?:href|xlink:href)\s*=\s*(['"])\s*javascript:[^'"]*\1/gi, '');
+
+  return sanitized.replace(/<svg\b([^>]*)>/i, (_match, attrs) => {
     let cleanAttrs = attrs
       .replace(/\bwidth="[^"]*"/gi, '')
       .replace(/\bheight="[^"]*"/gi, '')

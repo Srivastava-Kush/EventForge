@@ -1,9 +1,11 @@
 import { Router } from "express";
 import asyncHandler from "../middlewares/asyncHandler.js";
 import { protect } from "../middlewares/auth.middleware.js";
+import { createRateLimiterMiddleware } from "../middlewares/rateLimiter.middleware.js";
 import * as eventController from "../controllers/event.controller.js";
 
 const router = Router();
+const aiLimiter = createRateLimiterMiddleware({ limit: 10, windowMs: 60_000 });
 
 // All event routes require authentication
 router.use(protect);
@@ -42,12 +44,12 @@ router.delete("/:id/schedule/:itemId", asyncHandler(eventController.deleteSchedu
 
 // AI Poster Studio
 router.get("/:id/posters/suggestions", asyncHandler(eventController.getPosterSuggestions));
-router.post("/:id/posters/generate", asyncHandler(eventController.generatePoster));
+router.post("/:id/posters/generate", aiLimiter, asyncHandler(eventController.generatePoster));
 router.post("/:id/posters", asyncHandler(eventController.savePoster));
 router.delete("/:id/posters/:posterId", asyncHandler(eventController.deletePoster));
 
 // AI Inspirations & Creative Themes
-router.post("/:id/generate-ideas", asyncHandler(eventController.generateEventIdeas));
+router.post("/:id/generate-ideas", aiLimiter, asyncHandler(eventController.generateEventIdeas));
 
 export default router;
 

@@ -19,7 +19,10 @@ function getAuthConfig() {
  */
 export function signToken(id) {
   const config = getAuthConfig();
-  return jwt.sign({ id }, config.jwtSecret, { expiresIn: config.jwtExpiresIn });
+  return jwt.sign({ id }, config.jwtSecret, {
+    expiresIn: config.jwtExpiresIn,
+    algorithm: "HS256",
+  });
 }
 
 /**
