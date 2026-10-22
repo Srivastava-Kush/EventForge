@@ -27,7 +27,7 @@ export function loadEnv(env = process.env) {
 
   return {
     port: integer(env.PORT, 3000, 0, 65_535, "PORT"),
-    host: env.HOST?.trim() || "127.0.0.1",
+    host: env.HOST?.trim() || (env.NODE_ENV === "production" ? "0.0.0.0" : "127.0.0.1"),
     model,
     rateLimitPerMinute: integer(env.RATE_LIMIT_PER_MINUTE, 20, 1, 10_000, "RATE_LIMIT_PER_MINUTE"),
     trustProxy: boolean(env.TRUST_PROXY, "TRUST_PROXY"),
