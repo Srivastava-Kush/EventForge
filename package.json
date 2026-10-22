@@ -1,0 +1,45 @@
+{
+  "name": "event-planner-ai",
+  "version": "1.0.0",
+  "description": "GenAI-powered planning assistant for weddings, birthdays and community events: budgets, timelines, vendor checklists and personalized ideas.",
+  "private": true,
+  "type": "module",
+  "main": "server.js",
+  "engines": {
+    "node": ">=22.9"
+  },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server.js",
+    "dev": "node --watch --env-file-if-exists=.env server.js",
+    "server": "node --env-file-if-exists=.env server.js",
+    "server:dev": "node --watch --env-file-if-exists=.env server.js",
+    "client": "npm --prefix frontend run dev",
+    "client:build": "npm --prefix frontend run build",
+    "lint": "eslint .",
+    "test": "node --test",
+    "test:coverage": "node --test --experimental-test-coverage --test-coverage-lines=98 --test-coverage-branches=95 --test-coverage-functions=98",
+    "check": "npm run lint && npm run test:coverage"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "0.131.0",
+    "@google/genai": "^2.30.0",
+    "bcryptjs": "^3.0.3",
+    "compression": "^1.8.2",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.8",
+    "express": "^5.3.0",
+    "express-validator": "^7.3.2",
+    "helmet": "^8.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.11.2",
+    "zod": "4.6.5"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint": "10.11.0",
+    "globals": "17.12.0",
+    "jsdom": "29.1.1"
+  }
+}
