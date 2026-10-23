@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { eventService } from '../services/event.service.js';
 
@@ -40,31 +40,59 @@ export default function EventDetail() {
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard'); // dashboard | tasks | vendors | expenses | guests | schedule | posters | ideas
   const [isGeneratingIdeas, setIsGeneratingIdeas] = useState(false);
+  const [statusAnnouncement, setStatusAnnouncement] = useState('');
 
-  useEffect(() => {
-    let mounted = true;
+  const TAB_KEYS = ['dashboard', 'tasks', 'vendors', 'expenses', 'guests', 'schedule', 'posters', 'ideas'];
+
+  const fetchEventData = useCallback(() => {
     eventService
       .getEventById(id)
       .then((res) => {
-        if (mounted) {
-          setEventData(res.data);
-        }
+        setEventData(res.data);
       })
       .catch((err) => {
-        if (mounted) {
-          setError(err.message || 'Could not load event plan.');
-        }
+        setError(err.message || 'Could not load event plan.');
       })
       .finally(() => {
-        if (mounted) {
-          setLoading(false);
-        }
+        setLoading(false);
       });
-
-    return () => {
-      mounted = false;
-    };
   }, [id]);
+
+  useEffect(() => {
+    fetchEventData();
+    const handleEventUpdated = () => {
+      fetchEventData();
+      setStatusAnnouncement('Event data updated in real time by AI Assistant.');
+    };
+    window.addEventListener('event-updated', handleEventUpdated);
+    return () => {
+      window.removeEventListener('event-updated', handleEventUpdated);
+    };
+  }, [fetchEventData]);
+
+  const handleTabKeyDown = (e) => {
+    const currentIndex = TAB_KEYS.indexOf(activeTab);
+    if (currentIndex === -1) return;
+
+    let nextIndex = null;
+    if (e.key === 'ArrowRight') {
+      nextIndex = (currentIndex + 1) % TAB_KEYS.length;
+    } else if (e.key === 'ArrowLeft') {
+      nextIndex = (currentIndex - 1 + TAB_KEYS.length) % TAB_KEYS.length;
+    } else if (e.key === 'Home') {
+      nextIndex = 0;
+    } else if (e.key === 'End') {
+      nextIndex = TAB_KEYS.length - 1;
+    }
+
+    if (nextIndex !== null) {
+      e.preventDefault();
+      const nextTab = TAB_KEYS[nextIndex];
+      setActiveTab(nextTab);
+      document.getElementById(`tab-${nextTab}`)?.focus();
+      setStatusAnnouncement(`Switched to ${nextTab} section`);
+    }
+  };
 
   /* ========================================================================
      TASK HANDLERS
@@ -435,11 +463,17 @@ export default function EventDetail() {
         onTabChange={(tab) => setActiveTab(tab)}
       />
 
-      {/* Modular Navigation Tabs */}
+      {/* Screen reader live region status announcer */}
+      <div className="sr-only" role="status" aria-live="polite" id="a11y-status-announcer">
+        {statusAnnouncement}
+      </div>
+
+      {/* Modular Navigation Tabs with WAI-ARIA Arrow Keyboard Navigation */}
       <div
         className="plan-tabs-nav flex flex-wrap items-center gap-1.5 border-b border-subtle mb-6 pb-2"
         role="tablist"
         aria-label="Event management workspace sections"
+        onKeyDown={handleTabKeyDown}
       >
         <button
           type="button"

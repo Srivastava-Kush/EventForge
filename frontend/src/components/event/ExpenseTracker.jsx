@@ -337,16 +337,27 @@ export default function ExpenseTracker({
 
       {/* Add / Edit Expense Modal */}
       {showModal && (
-        <div className="modal-backdrop fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="expense-modal-title"
+          className="modal-backdrop fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50"
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') setShowModal(false);
+          }}
+        >
           <div className="modal-card card max-w-lg w-full p-6 bg-card-solid border border-card shadow-lg max-h-[90vh] overflow-y-auto animate-fadeIn">
             <div className="flex items-center justify-between mb-4 border-b border-subtle pb-3">
-              <h4 className="font-bold text-lg">{editingExpense ? 'Edit Expense Record' : 'Add Expense Record'}</h4>
+              <h4 id="expense-modal-title" className="font-bold text-lg">
+                {editingExpense ? 'Edit Expense Record' : 'Add Expense Record'}
+              </h4>
               <button
                 type="button"
                 className="btn btn-ghost p-1 text-muted hover:text-main"
                 onClick={() => setShowModal(false)}
+                aria-label="Close expense modal"
               >
-                <X size={18} />
+                <X size={18} aria-hidden="true" />
               </button>
             </div>
 

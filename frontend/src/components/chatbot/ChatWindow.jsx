@@ -14,6 +14,7 @@ import ChatMessage from './ChatMessage.jsx';
 import ChatInput from './ChatInput.jsx';
 import Loader from '../common/Loader.jsx';
 import { useChat } from '../../hooks/useChat.js';
+import { useLocation } from 'react-router-dom';
 
 const STARTER_CARDS = [
   {
@@ -46,8 +47,15 @@ export default function ChatWindow() {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const { messages, loading, historyLoading, error, sendMessage } = useChat();
+  const location = useLocation();
+  const match = location.pathname.match(/^\/events\/([a-zA-Z0-9]+)/);
+  const activeEventId = match ? match[1] : null;
   const messagesEndRef = useRef(null);
   const fabRef = useRef(null);
+
+  const handleSendMessage = (text) => {
+    sendMessage(text, activeEventId);
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -114,7 +122,7 @@ export default function ChatWindow() {
                   </span>
                 </div>
                 <span className="chat-status-indicator text-[11px] text-muted block">
-                  Context-aware of your saved events
+                  {activeEventId ? '⚡ Grounded in active event' : 'Context-aware of your saved events'}
                 </span>
               </div>
             </div>
@@ -197,7 +205,9 @@ export default function ChatWindow() {
                     </div>
                   </div>
                 ) : (
-                  messages.map((msg, index) => <ChatMessage key={index} message={msg} />)
+                  messages.map((msg, index) => (
+                    <ChatMessage key={index} message={msg} activeEventId={activeEventId} />
+                  ))
                 )}
 
                 {/* Gemini typing wave indicator */}
@@ -225,7 +235,7 @@ export default function ChatWindow() {
 
               {/* Chat Input */}
               <div className="chat-input-wrapper p-3 bg-bg-elevated/95 backdrop-blur-md border-t border-subtle">
-                <ChatInput onSendMessage={sendMessage} disabled={loading} />
+                <ChatInput onSendMessage={handleSendMessage} disabled={loading} />
               </div>
             </>
           )}

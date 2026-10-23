@@ -13,7 +13,11 @@ export async function connectDB(uri) {
     return;
   }
   try {
-    await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000 });
+    await mongoose.connect(uri, {
+      serverSelectionTimeoutMS: 5000,
+      maxPoolSize: 10,
+      minPoolSize: 2,
+    });
     isConnected = true;
     console.log("[db] MongoDB connected");
   } catch (err) {

@@ -1,8 +1,8 @@
 import api from './api.js';
 
 export const chatService = {
-  async sendMessage(message) {
-    return api.post('/chat', { message });
+  async sendMessage(message, eventId = null) {
+    return api.post('/chat', { message, eventId });
   },
 
   async getHistory() {

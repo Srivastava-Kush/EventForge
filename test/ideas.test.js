@@ -327,3 +327,93 @@ describe("buildIdeasPrompt", () => {
     assert.ok(!context.keyRisks.includes("Accessibility first"));
   });
 });
+
+describe("Google GenAI generation & Assistant tests", () => {
+  const GEMINI_IDEAS = {
+    themes: [
+      { name: "Celestial Twilight", description: "Deep navy and gold accents under starry fairy lights." },
+      { name: "Urban Botanical", description: "Lush greenery in an industrial loft setting." },
+      { name: "Modern Minimalist", description: "Clean lines with sculptural floral arrangements." },
+    ],
+    decor: ["Fairy lights", "Gold geometric lanterns", "Navy linen runners"],
+    food: ["Tapas tasting boards", "Artisan flatbreads", "Elderflower spritz"],
+    activities: ["Polaroid guestbook", "Live acoustic lounge set"],
+    budgetTips: ["Borrow lanterns rather than renting", "Digital RSVP save-the-dates"],
+    personalTouch: "Handwrite a welcome note at each place setting.",
+  };
+
+  function fakeGeminiClient(respond) {
+    const calls = [];
+    return {
+      calls,
+      models: {
+        generateContent: async (params) => {
+          calls.push(params);
+          return respond(params, calls.length);
+        },
+      },
+    };
+  }
+
+  test("generates ideas using GoogleGenAI models.generateContent", async () => {
+    const { input, plan } = setup({ vibe: "starry night", notes: "Outdoor terrace" });
+    const client = fakeGeminiClient(() => ({
+      text: JSON.stringify(GEMINI_IDEAS),
+    }));
+
+    const service = createIdeasService({ client, logger: silent });
+    const result = await service.getIdeas(input, plan);
+
+    assert.equal(result.source, "ai");
+    assert.equal(result.ideas.themes.length, 3);
+    assert.equal(result.ideas.themes[0].name, "Celestial Twilight");
+    assert.equal(client.calls.length, 1);
+    assert.equal(client.calls[0].config.responseMimeType, "application/json");
+  });
+
+  test("retries with fallback model when GoogleGenAI returns 503 service unavailable", async () => {
+    const { input, plan } = setup();
+    const client = fakeGeminiClient((params, callNum) => {
+      if (callNum === 1) {
+        const err = new Error("Model unavailable due to high demand");
+        err.status = 503;
+        throw err;
+      }
+      return { text: JSON.stringify(GEMINI_IDEAS) };
+    });
+
+    const service = createIdeasService({ client, logger: silent });
+    const result = await service.getIdeas(input, plan);
+
+    assert.equal(result.source, "ai");
+    assert.equal(client.calls.length, 2);
+    assert.match(client.calls[1].model, /flash/);
+  });
+
+  test("falls back to curated ideas when Gemini returns no text or malformed JSON", async () => {
+    const { input, plan } = setup();
+    const client = fakeGeminiClient(() => ({ text: "" }));
+
+    const service = createIdeasService({ client, logger: silent });
+    const result = await service.getIdeas(input, plan);
+
+    assert.equal(result.source, "curated");
+    assert.match(result.notice, /AI response could not be used/);
+  });
+
+  test("falls back to curated ideas on quota or rate limit error with clear notice", async () => {
+    const { input, plan } = setup();
+    const client = fakeGeminiClient(() => {
+      const err = new Error("Resource has been exhausted (e.g. check quota).");
+      err.status = 429;
+      throw err;
+    });
+
+    const service = createIdeasService({ client, logger: silent });
+    const result = await service.getIdeas(input, plan);
+
+    assert.equal(result.source, "curated");
+    assert.match(result.notice, /AI service is busy/);
+  });
+});
+

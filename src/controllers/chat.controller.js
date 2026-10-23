@@ -4,8 +4,8 @@ import { HTTP_STATUS } from "../constants/httpStatus.js";
 
 /** POST /api/chat — send a message, get a reply */
 export async function sendMessage(req, res) {
-  const { message } = req.body;
-  const { reply } = await chatService.sendMessage(req.user._id, message);
+  const { message, eventId } = req.body;
+  const { reply } = await chatService.sendMessage(req.user._id, message, { eventId });
   return sendResponse(res, HTTP_STATUS.OK, true, { reply });
 }
 

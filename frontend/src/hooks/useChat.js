@@ -30,7 +30,7 @@ export function useChat() {
     };
   }, []);
 
-  const sendMessage = async (content) => {
+  const sendMessage = async (content, eventId = null) => {
     if (!content || !content.trim()) return;
 
     const trimmed = content.trim();
@@ -45,7 +45,7 @@ export function useChat() {
     setError('');
 
     try {
-      const res = await chatService.sendMessage(trimmed);
+      const res = await chatService.sendMessage(trimmed, eventId);
       const assistantMsg = {
         role: 'assistant',
         content: res.data?.reply || '',

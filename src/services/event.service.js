@@ -1,11 +1,21 @@
 import { randomUUID } from "node:crypto";
 import { buildPlan } from "../planner/index.js";
 import { validatePlanRequest } from "../validators/event.validator.js";
-import { createIdeasService, generatePosterWithGemini } from "./llm.service.js";
+import { createIdeasService } from "./llm.service.js";
 import Event from "../models/Event.model.js";
 import { AppError } from "../utils/AppError.js";
 import { HTTP_STATUS } from "../constants/httpStatus.js";
-import { sanitizeSvg } from "../utils/sanitizeSvg.js";
+import { getDefaultSchedule, computeMetrics } from "./eventMetrics.service.js";
+import {
+  buildPosterSuggestions,
+  generateSvgPoster,
+  generatePosterWithAi,
+  savePosterToEvent,
+  deletePosterFromEvent,
+} from "./poster.service.js";
+
+// Re-export metrics & poster functions for full backwards compatibility
+export { getDefaultSchedule, computeMetrics, generateSvgPoster, generatePosterWithAi };
 
 // Shared ideas service instance — no client by default; replaced in configureEventService()
 let _ideasService = null;
@@ -21,147 +31,6 @@ export function configureEventService({ ideasService }) {
 function getIdeasService() {
   if (!_ideasService) _ideasService = createIdeasService();
   return _ideasService;
-}
-
-/** Default sample run-sheet activities by event type */
-function getDefaultSchedule(eventType) {
-  if (eventType === "wedding") {
-    return [
-      { id: "sch-1", startTime: "10:00 AM", endTime: "12:00 PM", activity: "Bridal Party & Groom Preparation", location: "Dressing Suites", responsiblePerson: "Wedding Coordinator", notes: "Hair and makeup arrival", completed: false },
-      { id: "sch-2", startTime: "01:00 PM", endTime: "02:00 PM", activity: "First Look & Couple Portraits", location: "Main Gardens", responsiblePerson: "Photographer", notes: "Prepare floral bouquets", completed: false },
-      { id: "sch-3", startTime: "03:00 PM", endTime: "04:00 PM", activity: "Guest Arrival & Welcome Refreshments", location: "Foyer / Lawn", responsiblePerson: "Usher Team", notes: "Ambient acoustic music", completed: false },
-      { id: "sch-4", startTime: "04:00 PM", endTime: "04:45 PM", activity: "Ceremony & Exchange of Vows", location: "Ceremony Arch", responsiblePerson: "Officiant", notes: "Microphone check 30m prior", completed: false },
-      { id: "sch-5", startTime: "05:00 PM", endTime: "06:30 PM", activity: "Cocktail Hour & Passed Hors d'oeuvres", location: "Terrace Bar", responsiblePerson: "Catering Lead", notes: "Signature mocktails/drinks", completed: false },
-      { id: "sch-6", startTime: "06:30 PM", endTime: "08:30 PM", activity: "Grand Entrance, Toasts & Dinner Service", location: "Ballroom", responsiblePerson: "Maid of Honor / Best Man", notes: "Toasts capped at 3m each", completed: false },
-      { id: "sch-7", startTime: "08:30 PM", endTime: "11:00 PM", activity: "Cake Cutting, First Dance & Party", location: "Dance Floor", responsiblePerson: "DJ / Band", notes: "Lighting transition", completed: false },
-    ];
-  }
-  if (eventType === "birthday") {
-    return [
-      { id: "sch-1", startTime: "02:00 PM", endTime: "03:00 PM", activity: "Venue Setup & Decor Styling", location: "Party Space", responsiblePerson: "Host & Decorator", notes: "Balloons and backdrop", completed: false },
-      { id: "sch-2", startTime: "03:30 PM", endTime: "04:00 PM", activity: "Guest Arrival & Welcome Drinks", location: "Entrance / Lounge", responsiblePerson: "Host", notes: "Sign-in guestbook", completed: false },
-      { id: "sch-3", startTime: "04:00 PM", endTime: "05:30 PM", activity: "Interactive Games & Activities", location: "Main Hall / Yard", responsiblePerson: "Activity Host", notes: "Music playlist ready", completed: false },
-      { id: "sch-4", startTime: "05:30 PM", endTime: "06:45 PM", activity: "Buffet Dinner / Food Service", location: "Dining Area", responsiblePerson: "Caterer", notes: "Dietary tags labeled", completed: false },
-      { id: "sch-5", startTime: "06:45 PM", endTime: "07:15 PM", activity: "Cake Cutting & Birthday Toast", location: "Center Stage", responsiblePerson: "Honoree & Family", notes: "Candles and lighter ready", completed: false },
-      { id: "sch-6", startTime: "07:15 PM", endTime: "09:00 PM", activity: "Open Dance Floor & Dessert Bar", location: "Dance Floor", responsiblePerson: "DJ", notes: "Party favors distributed", completed: false },
-    ];
-  }
-  return [
-    { id: "sch-1", startTime: "08:00 AM", endTime: "09:30 AM", activity: "Logistics Setup & Safety Inspection", location: "Event Grounds", responsiblePerson: "Logistics Lead", notes: "Tables, tents & power supply", completed: false },
-    { id: "sch-2", startTime: "09:30 AM", endTime: "10:00 AM", activity: "Volunteer & Staff Briefing", location: "Information Desk", responsiblePerson: "Event Director", notes: "Handout walkie-talkies", completed: false },
-    { id: "sch-3", startTime: "10:00 AM", endTime: "10:30 AM", activity: "Gates Open & Welcome Speech", location: "Main Stage", responsiblePerson: "Community Chair", notes: "PA system check", completed: false },
-    { id: "sch-4", startTime: "10:30 AM", endTime: "01:00 PM", activity: "Workshops, Stalls & Performances", location: "Activity Zones", responsiblePerson: "Zone Coordinators", notes: "Rotate safety staff", completed: false },
-    { id: "sch-5", startTime: "01:00 PM", endTime: "02:30 PM", activity: "Community Feast & Music", location: "Dining Tents", responsiblePerson: "Food Vendors", notes: "Recycling stations active", completed: false },
-    { id: "sch-6", startTime: "03:00 PM", endTime: "04:00 PM", activity: "Closing Remarks & Awards", location: "Main Stage", responsiblePerson: "Organizing Committee", notes: "Trophy presentations", completed: false },
-    { id: "sch-7", startTime: "04:00 PM", endTime: "06:00 PM", activity: "Teardown, Clean-up & Waste Audit", location: "Entire Grounds", responsiblePerson: "Clean-up Volunteers", notes: "Leave-no-trace check", completed: false },
-  ];
-}
-
-/**
- * Computes live derived progress metrics for an event without mutating data.
- * Guarantees no double counting: expenses are summed strictly from the expenses list.
- */
-export function computeMetrics(event) {
-  const tasks = event.tasks || [];
-  const vendors = event.vendors || [];
-  const expenses = event.expenses || [];
-  const guests = event.guests || [];
-  const schedule = event.schedule || [];
-
-  // 1. Task metrics
-  const totalTasks = tasks.length;
-  const completedTasks = tasks.filter((t) => t.status === "completed").length;
-  const pendingTasks = totalTasks - completedTasks;
-  const todayIso = new Date().toISOString().slice(0, 10);
-  const overdueTasks = tasks.filter(
-    (t) => t.status === "pending" && t.dueDate && t.dueDate < todayIso,
-  ).length;
-  const taskProgress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-
-  // 2. Vendor metrics
-  const totalVendors = vendors.length;
-  const bookedVendors = vendors.filter((v) => v.bookingStatus === "booked").length;
-  const contactedVendors = vendors.filter((v) => v.bookingStatus === "contacted").length;
-  const pendingVendors = vendors.filter(
-    (v) => !v.bookingStatus || v.bookingStatus === "pending",
-  ).length;
-  const declinedVendors = vendors.filter((v) => v.bookingStatus === "declined").length;
-  const vendorProgress = totalVendors > 0 ? Math.round((bookedVendors / totalVendors) * 100) : 0;
-
-  // 3. Accurate Budget & Expenses (strictly 1:1, never double counted)
-  const totalBudget = Number(event.plan?.budget?.total || event.input?.budget || 0);
-  const totalEstimatedCost = expenses.reduce((sum, e) => sum + (Number(e.estimatedCost) || 0), 0);
-  const totalActualCost = expenses.reduce((sum, e) => sum + (Number(e.actualCost) || 0), 0);
-  const totalPaidAmount = expenses.reduce((sum, e) => sum + (Number(e.paidAmount) || 0), 0);
-  const outstandingBalance = Math.max(0, totalActualCost - totalPaidAmount);
-  const remainingBudget = totalBudget - totalActualCost;
-
-  // 4. Guest metrics
-  const totalInvited = guests.length;
-  const attendingGuests = guests.filter((g) => g.rsvpStatus === "attending");
-  const attendingCount = attendingGuests.reduce(
-    (sum, g) => sum + 1 + (Number(g.plusOnes) || 0),
-    0,
-  );
-  const declinedCount = guests.filter((g) => g.rsvpStatus === "declined").length;
-  const pendingRsvpCount = guests.filter(
-    (g) => g.rsvpStatus === "pending" || g.rsvpStatus === "tentative",
-  ).length;
-
-  // 5. Schedule metrics
-  const totalScheduleItems = schedule.length;
-  const completedScheduleItems = schedule.filter((s) => s.completed).length;
-
-  // 6. Overall Weighted Preparation Progress (Tasks 45%, Vendors 45%, Schedule 10%)
-  let overallProgress = 0;
-  if (totalTasks > 0 && totalVendors > 0) {
-    overallProgress = Math.round(taskProgress * 0.45 + vendorProgress * 0.45 + (totalScheduleItems > 0 ? (completedScheduleItems / totalScheduleItems) * 10 : 10));
-  } else if (totalTasks > 0) {
-    overallProgress = taskProgress;
-  } else if (totalVendors > 0) {
-    overallProgress = vendorProgress;
-  }
-
-  return {
-    overallProgress: Math.min(100, Math.max(0, overallProgress)),
-    tasks: {
-      total: totalTasks,
-      completed: completedTasks,
-      pending: pendingTasks,
-      overdue: overdueTasks,
-      progressPercent: taskProgress,
-    },
-    vendors: {
-      total: totalVendors,
-      booked: bookedVendors,
-      contacted: contactedVendors,
-      pending: pendingVendors,
-      declined: declinedVendors,
-      progressPercent: vendorProgress,
-    },
-    budget: {
-      totalBudget,
-      currency: event.plan?.budget?.currency || event.input?.currency || "USD",
-      totalEstimatedCost,
-      totalActualCost,
-      totalPaidAmount,
-      outstandingBalance,
-      remainingBudget,
-      isOverBudget: remainingBudget < 0,
-      spentPercentage: totalBudget > 0 ? Math.round((totalActualCost / totalBudget) * 100) : 0,
-    },
-    guests: {
-      totalInvited,
-      attending: attendingCount,
-      declined: declinedCount,
-      pending: pendingRsvpCount,
-      targetGuestCount: event.input?.guestCount || 0,
-    },
-    schedule: {
-      total: totalScheduleItems,
-      completed: completedScheduleItems,
-    },
-  };
 }
 
 /**
@@ -341,7 +210,9 @@ export async function createEvent(body, { user = null, now = new Date() } = {}) 
  * Returns all events for a user with computed dashboard progress metrics.
  */
 export async function getUserEvents(userId) {
-  const events = await Event.find({ user: userId }).sort({ createdAt: -1 });
+  const events = await Event.find({ user: userId })
+    .select("-posters.imageData")
+    .sort({ createdAt: -1 });
 
   return events.map((ev) => {
     ensureInteractiveEntities(ev);
@@ -773,7 +644,7 @@ export async function deleteScheduleItem(eventId, itemId, userId) {
 }
 
 /* ==========================================================================
-   AI POSTER STUDIO OPERATIONS
+   AI POSTER STUDIO OPERATIONS (Delegated to poster.service.js)
    ========================================================================== */
 
 /**
@@ -781,230 +652,17 @@ export async function deleteScheduleItem(eventId, itemId, userId) {
  */
 export async function getPosterSuggestions(eventId, userId) {
   const event = await getOwnedEvent(eventId, userId);
-
-  const eventName = event.plan?.summary?.eventName || event.input?.eventName || `${event.type || "Event"} Celebration`;
-  const vibe = event.input?.vibe || "celebratory";
-
-  return [
-    {
-      id: "style-1",
-      name: "Modern Minimalist",
-      style: "modern",
-      prompt: `Minimalist modern typography poster for ${eventName}. Clean geometric layout with soft warm pastel tones, subtle gold framing, and serene festive elegance.`,
-      palette: ["#1e293b", "#f8fafc", "#e2e8f0", "#6366f1"],
-    },
-    {
-      id: "style-2",
-      name: "Luxury Gold & Midnight",
-      style: "luxury",
-      prompt: `Opulent luxury event poster for ${eventName}. Midnight velvet background with sparkling gold foil accents, art-deco flourishes, and grand celebratory ambiance.`,
-      palette: ["#0f172a", "#fbbf24", "#d97706", "#ffffff"],
-    },
-    {
-      id: "style-3",
-      name: "Botanical Garden",
-      style: "botanical",
-      prompt: `Lush botanical illustration poster for ${eventName}. Delicate eucalyptus leaves, soft peach and ivory florals, natural organic textures, and hand-lettered styling.`,
-      palette: ["#14532d", "#86efac", "#fef3c7", "#1c1917"],
-    },
-    {
-      id: "style-4",
-      name: "Neon Festival Vibe",
-      style: "neon",
-      prompt: `Electric vibrant neon celebration poster for ${eventName} (${vibe}). Radiant glowing cyan and magenta lights, dynamic party energy, and bold typography.`,
-      palette: ["#09090b", "#06b6d4", "#ec4899", "#a855f7"],
-    },
-  ];
-}
-
-/**
- * Generates an SVG vector graphic poster rendered according to the chosen style and event facts.
- */
-export function generateSvgPoster({ title, subtitle, date, location, style = "modern" }) {
-  const cleanTitle = (title || "Grand Celebration").replace(/[<>&"]/g, "");
-  const cleanSub = (subtitle || "Join us for an unforgettable event").replace(/[<>&"]/g, "");
-  const cleanDate = (date || "").replace(/[<>&"]/g, "");
-  const cleanLoc = (location || "").replace(/[<>&"]/g, "");
-
-  let bgGradient = `
-    <defs>
-      <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#1e1e2f" />
-        <stop offset="50%" stop-color="#13141f" />
-        <stop offset="100%" stop-color="#0a0a10" />
-      </linearGradient>
-      <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%" stop-color="#ec4899" />
-        <stop offset="50%" stop-color="#8b5cf6" />
-        <stop offset="100%" stop-color="#3b82f6" />
-      </linearGradient>
-    </defs>
-  `;
-  let frameColor = "#4f46e5";
-  let textColor = "#ffffff";
-  let accentColor = "#a78bfa";
-
-  if (style === "luxury") {
-    bgGradient = `
-      <defs>
-        <radialGradient id="bg" cx="50%" cy="40%" r="70%">
-          <stop offset="0%" stop-color="#1c1917" />
-          <stop offset="100%" stop-color="#09090b" />
-        </radialGradient>
-        <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#fde047" />
-          <stop offset="50%" stop-color="#d97706" />
-          <stop offset="100%" stop-color="#b45309" />
-        </linearGradient>
-      </defs>
-    `;
-    frameColor = "#f59e0b";
-    textColor = "#fef08a";
-    accentColor = "#fbbf24";
-  } else if (style === "botanical") {
-    bgGradient = `
-      <defs>
-        <linearGradient id="bg" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stop-color="#064e3b" />
-          <stop offset="100%" stop-color="#022c22" />
-        </linearGradient>
-        <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="#a7f3d0" />
-          <stop offset="100%" stop-color="#fef3c7" />
-        </linearGradient>
-      </defs>
-    `;
-    frameColor = "#34d399";
-    textColor = "#ecfdf5";
-    accentColor = "#6ee7b7";
-  } else if (style === "neon") {
-    bgGradient = `
-      <defs>
-        <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#09090b" />
-          <stop offset="100%" stop-color="#180e29" />
-        </linearGradient>
-        <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="#00f5ff" />
-          <stop offset="50%" stop-color="#ff007f" />
-          <stop offset="100%" stop-color="#ffe600" />
-        </linearGradient>
-      </defs>
-    `;
-    frameColor = "#00f5ff";
-    textColor = "#ffffff";
-    accentColor = "#ff007f";
-  }
-
-  return `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1120" width="100%" height="100%">
-  ${bgGradient}
-  <rect width="800" height="1120" fill="url(#bg)" />
-
-  <!-- Outer Decorative Border -->
-  <rect x="40" y="40" width="720" height="1040" rx="16" fill="none" stroke="${frameColor}" stroke-width="2" stroke-opacity="0.4" />
-  <rect x="52" y="52" width="696" height="1016" rx="12" fill="none" stroke="${frameColor}" stroke-width="1" stroke-opacity="0.2" />
-
-  <!-- Corner Flourishes -->
-  <circle cx="52" cy="52" r="6" fill="${frameColor}" />
-  <circle cx="748" cy="52" r="6" fill="${frameColor}" />
-  <circle cx="52" cy="1068" r="6" fill="${frameColor}" />
-  <circle cx="748" cy="1068" r="6" fill="${frameColor}" />
-
-  <!-- Header Badge -->
-  <g transform="translate(400, 160)">
-    <rect x="-140" y="-22" width="280" height="44" rx="22" fill="${frameColor}" fill-opacity="0.15" stroke="${frameColor}" stroke-width="1.5" />
-    <text text-anchor="middle" y="6" fill="${accentColor}" font-family="'Outfit', sans-serif" font-size="14" font-weight="700" letter-spacing="4">YOU ARE CORDIALLY INVITED</text>
-  </g>
-
-  <!-- Title -->
-  <text text-anchor="middle" x="400" y="320" fill="${textColor}" font-family="'Outfit', sans-serif" font-size="44" font-weight="800" letter-spacing="1">
-    ${cleanTitle.slice(0, 30)}
-  </text>
-  ${cleanTitle.length > 30 ? `<text text-anchor="middle" x="400" y="375" fill="${textColor}" font-family="'Outfit', sans-serif" font-size="36" font-weight="800">${cleanTitle.slice(30, 60)}</text>` : ""}
-
-  <!-- Divider Line -->
-  <line x1="260" y1="440" x2="540" y2="440" stroke="url(#accent)" stroke-width="3" stroke-linecap="round" />
-
-  <!-- Subtitle / Vibe -->
-  <text text-anchor="middle" x="400" y="510" fill="#cbd5e1" font-family="'Inter', sans-serif" font-size="20" font-weight="400" letter-spacing="0.5">
-    ${cleanSub.slice(0, 48)}
-  </text>
-  ${cleanSub.length > 48 ? `<text text-anchor="middle" x="400" y="545" fill="#94a3b8" font-family="'Inter', sans-serif" font-size="18">${cleanSub.slice(48, 96)}</text>` : ""}
-
-  <!-- Central Graphic Element -->
-  <g transform="translate(400, 680)">
-    <circle cx="0" cy="0" r="110" fill="none" stroke="url(#accent)" stroke-width="2" stroke-dasharray="6 6" />
-    <circle cx="0" cy="0" r="85" fill="${frameColor}" fill-opacity="0.1" />
-    <polygon points="0,-60 18,-18 60,-18 26,10 40,52 0,26 -40,52 -26,10 -60,-18 -18,-18" fill="url(#accent)" opacity="0.9" />
-  </g>
-
-  <!-- Event Details Box -->
-  <g transform="translate(400, 880)">
-    <rect x="-240" y="-45" width="480" height="90" rx="16" fill="#000000" fill-opacity="0.35" stroke="${frameColor}" stroke-width="1" />
-    ${cleanDate ? `<text text-anchor="middle" y="-10" fill="${textColor}" font-family="'Outfit', sans-serif" font-size="22" font-weight="700">DATE: ${cleanDate}</text>` : ""}
-    ${cleanLoc ? `<text text-anchor="middle" y="24" fill="${accentColor}" font-family="'Inter', sans-serif" font-size="16" font-weight="500">${cleanLoc}</text>` : `<text text-anchor="middle" y="24" fill="${accentColor}" font-family="'Inter', sans-serif" font-size="16" font-weight="500">HONORING OUR SPECIAL GUESTS</text>`}
-  </g>
-
-  <!-- Footer Tagline -->
-  <text text-anchor="middle" x="400" y="1030" fill="#64748b" font-family="'Inter', sans-serif" font-size="13" letter-spacing="2">PLEASE RSVP AT YOUR EARLIEST CONVENIENCE</text>
-</svg>
-  `.trim();
-}
-
-/**
- * Generates an event poster using Google Gemini AI with customized prompt,
- * falling back to custom AI vector SVG and deterministic generator if needed.
- */
-export async function generatePosterWithAi({ title, subtitle, date, location, style = "modern", prompt = "", eventType = "event", engine = "auto" }) {
-  const result = await generatePosterWithGemini({ title, subtitle, date, location, style, prompt, eventType, engine });
-  if (result?.data) {
-    if (result.type === "svg" || typeof result.data === "string" && result.data.includes("<svg")) {
-      result.data = sanitizeSvg(result.data);
-      if (result.svg) result.svg = sanitizeSvg(result.svg);
-    }
-    return result;
-  }
-  const fallbackSvg = sanitizeSvg(generateSvgPoster({ title, subtitle, date, location, style }));
-  return {
-    type: "svg",
-    data: fallbackSvg,
-    svg: fallbackSvg,
-  };
+  return buildPosterSuggestions(event);
 }
 
 export async function savePoster(eventId, posterData, userId) {
   const event = await getOwnedEvent(eventId, userId);
-
-  if (!posterData.imageData) {
-    throw new AppError("Poster image data is required.", HTTP_STATUS.BAD_REQUEST);
-  }
-
-  const cleanImageData = sanitizeSvg(posterData.imageData);
-  if (!cleanImageData) {
-    throw new AppError("Invalid or disallowed poster image data.", HTTP_STATUS.BAD_REQUEST);
-  }
-
-  const newPoster = {
-    id: `poster-${randomUUID().slice(0, 8)}`,
-    title: posterData.title?.trim() || "Event Poster",
-    prompt: posterData.prompt?.trim() || "Custom Design",
-    style: posterData.style || "modern",
-    imageData: cleanImageData,
-    createdAt: new Date(),
-  };
-
-  event.posters.push(newPoster);
-  await event.save();
-  return { poster: newPoster, posters: event.posters };
+  return savePosterToEvent(event, posterData);
 }
 
 export async function deletePoster(eventId, posterId, userId) {
   const event = await getOwnedEvent(eventId, userId);
-
-  event.posters = event.posters.filter((p) => p.id !== posterId);
-  await event.save();
-  return { posters: event.posters };
+  return deletePosterFromEvent(event, posterId);
 }
 
 /**

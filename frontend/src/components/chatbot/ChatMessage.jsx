@@ -1,7 +1,69 @@
 import React, { useState } from 'react';
-import { User as UserIcon, Copy, Check, Sparkles } from 'lucide-react';
+import { User as UserIcon, Copy, Check, Sparkles, CheckCircle, Briefcase } from 'lucide-react';
+import { eventService } from '../../services/event.service.js';
 
-export default function ChatMessage({ message }) {
+function ActionCard({ type, data, activeEventId }) {
+  const [applied, setApplied] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleApply = async () => {
+    if (!activeEventId) {
+      alert('Please open a specific event from your dashboard to apply this item.');
+      return;
+    }
+    setLoading(true);
+    try {
+      if (type === 'ADD_TASK') {
+        await eventService.createTask(activeEventId, {
+          title: data.title || 'Recommended Task',
+          phase: data.phase || 'Plan & book',
+        });
+      } else if (type === 'ADD_VENDOR') {
+        await eventService.createVendor(activeEventId, {
+          name: data.name || 'Recommended Vendor',
+          priority: data.priority || 'recommended',
+        });
+      }
+      setApplied(true);
+      window.dispatchEvent(new CustomEvent('event-updated'));
+    } catch (err) {
+      alert(err.message || 'Failed to apply recommendation.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const isTask = type === 'ADD_TASK';
+
+  return (
+    <div className="action-recommendation-card my-2 p-2.5 rounded-lg border border-primary/30 bg-primary/10 flex items-center justify-between gap-3">
+      <div className="flex items-center gap-2 overflow-hidden">
+        {isTask ? (
+          <CheckCircle size={16} className="text-primary flex-shrink-0" aria-hidden="true" />
+        ) : (
+          <Briefcase size={16} className="text-secondary flex-shrink-0" aria-hidden="true" />
+        )}
+        <div className="text-xs">
+          <span className="font-bold text-main block truncate">{data.title || data.name}</span>
+          <span className="text-[10px] text-muted capitalize">
+            {isTask ? `Task • ${data.phase || 'Plan & book'}` : `Vendor • ${data.priority || 'Recommended'}`}
+          </span>
+        </div>
+      </div>
+      <button
+        type="button"
+        disabled={applied || loading}
+        onClick={handleApply}
+        className={`btn btn-xs ${applied ? 'btn-success' : 'btn-primary'} flex items-center gap-1 font-semibold`}
+      >
+        {applied ? <Check size={12} /> : null}
+        <span>{applied ? 'Applied!' : loading ? 'Adding...' : 'Apply to Event'}</span>
+      </button>
+    </div>
+  );
+}
+
+export default function ChatMessage({ message, activeEventId = null }) {
   const isUser = message.role === 'user';
   const [copied, setCopied] = useState(false);
 
@@ -19,6 +81,25 @@ export default function ChatMessage({ message }) {
 
     return paragraphs.map((para, pIdx) => {
       const trimmedPara = para.trim();
+
+      // Check for Action Recommendation: [ACTION:ADD_TASK] { ... } or [ACTION:ADD_VENDOR] { ... }
+      const actionMatch = trimmedPara.match(/^\[ACTION:(ADD_TASK|ADD_VENDOR)\]\s*(\{.*\})$/);
+      if (actionMatch) {
+        try {
+          const actionType = actionMatch[1];
+          const actionData = JSON.parse(actionMatch[2]);
+          return (
+            <ActionCard
+              key={pIdx}
+              type={actionType}
+              data={actionData}
+              activeEventId={activeEventId}
+            />
+          );
+        } catch {
+          // fallback to regular rendering
+        }
+      }
 
       // Check for headings (### Heading)
       if (trimmedPara.startsWith('### ')) {

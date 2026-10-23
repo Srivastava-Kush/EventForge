@@ -258,6 +258,10 @@ export function createIdeasService({ client = null, model = DEFAULT_MODEL, cache
 
 let _chatClient = null;
 
+export function setChatClient(client) {
+  _chatClient = client;
+}
+
 function getChatClient(model) {
   if (!_chatClient) {
     const apiKey = process.env.GEMINI_API_KEY || process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN;
@@ -271,12 +275,12 @@ function getChatClient(model) {
 }
 
 export async function chatWithAssistant(userMessage, history = [], eventsSummary = "", options = {}) {
-  const ctx = getChatClient(options.model);
+  const ctx = options.clientContext || getChatClient(options.model);
   if (!ctx) {
     return "AI chat is not configured on this server. Please set a valid GEMINI_API_KEY in .env.";
   }
 
-  const systemPrompt = buildChatSystemPrompt(eventsSummary);
+  const systemPrompt = buildChatSystemPrompt(eventsSummary, options.activeEventContext || "");
 
   const contents = [
     ...history.slice(-10).map(({ role, content }) => ({
@@ -373,6 +377,7 @@ export async function generateRasterImageWithFlux({
 
   try {
     const res = await fetch(fluxUrl, {
+      signal: AbortSignal.timeout(3000),
       headers: {
         Accept: "image/jpeg,image/png,image/*;q=0.8",
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) EventForge/1.0",
@@ -414,16 +419,17 @@ export async function generatePosterWithGemini({
   prompt = "",
   eventType = "event",
   engine = "auto",
+  aiClient = null,
 }) {
   if (engine === "flux" || engine === "image") {
     return generateRasterImageWithFlux({ title, subtitle, date, location, style, prompt, eventType });
   }
 
   const apiKey = process.env.GEMINI_API_KEY || process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
+  if (!apiKey && !aiClient) {
     return { type: "svg", data: null, error: "GEMINI_API_KEY is not configured." };
   }
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = aiClient || new GoogleGenAI({ apiKey });
 
   const effectivePrompt = (prompt && prompt.trim()) ||
     `High-end promotional invitation poster for a ${eventType} titled "${title}". ${subtitle ? `Vibe: ${subtitle}.` : ""} Date: ${date}. Venue: ${location}. Aesthetic: ${style} with rich decorative styling, perfect typography, and balanced layout.`;

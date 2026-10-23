@@ -113,5 +113,33 @@ describe("Frontend Architecture and Accessibility (A11y) Verification", () => {
       assert.match(chat, /aria-live="polite"/);
       assert.match(chat, /Escape/);
     });
+
+    test("EventDetail implements WAI-ARIA tab navigation and live screen reader announcer", () => {
+      const eventDetail = readFrontendFile("src/pages/EventDetail.jsx");
+      assert.match(eventDetail, /onKeyDown=\{handleTabKeyDown\}/, "Arrow key tab navigation handler present");
+      assert.match(eventDetail, /role="status"/, "Live announcer role defined");
+      assert.match(eventDetail, /aria-live="polite"/, "Polite screen reader live region present");
+      assert.match(eventDetail, /window\.addEventListener\('event-updated'/, "Real-time AI sync event listener present");
+    });
+
+    test("modals implement WAI-ARIA dialog role with escape dismissal", () => {
+      const expense = readFrontendFile("src/components/event/ExpenseTracker.jsx");
+      const vendor = readFrontendFile("src/components/event/VendorManager.jsx");
+      const guest = readFrontendFile("src/components/event/GuestManager.jsx");
+
+      assert.match(expense, /role="dialog"/);
+      assert.match(expense, /aria-modal="true"/);
+      assert.match(vendor, /role="dialog"/);
+      assert.match(vendor, /aria-modal="true"/);
+      assert.match(guest, /role="dialog"/);
+      assert.match(guest, /aria-modal="true"/);
+    });
+
+    test("ChatMessage supports interactive action recommendation cards", () => {
+      const chatMsg = readFrontendFile("src/components/chatbot/ChatMessage.jsx");
+      assert.match(chatMsg, /ActionCard/);
+      assert.match(chatMsg, /ACTION:(ADD_TASK|ADD_VENDOR)/);
+      assert.match(chatMsg, /Apply to Event/);
+    });
   });
 });
