@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { eventService } from '../services/event.service.js';
+import { useEventOperations } from '../hooks/useEventOperations.js';
 
 // Modular Feature Components
 import PreparationDashboard from '../components/event/PreparationDashboard.jsx';
@@ -13,6 +14,7 @@ import PosterStudio from '../components/event/PosterStudio.jsx';
 import InsightsList from '../components/event/InsightsList.jsx';
 import BudgetBreakdown from '../components/event/BudgetBreakdown.jsx';
 import Loader from '../components/common/Loader.jsx';
+import ConfirmModal from '../components/common/ConfirmModal.jsx';
 
 import {
   ArrowLeft,
@@ -39,8 +41,35 @@ export default function EventDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard'); // dashboard | tasks | vendors | expenses | guests | schedule | posters | ideas
-  const [isGeneratingIdeas, setIsGeneratingIdeas] = useState(false);
   const [statusAnnouncement, setStatusAnnouncement] = useState('');
+
+  const {
+    isGeneratingIdeas,
+    opError,
+    setOpError,
+    confirmModal,
+    closeConfirmModal,
+    handleToggleTask,
+    handleAddTask,
+    handleUpdateTask,
+    handleDeleteTask,
+    handleAddVendor,
+    handleUpdateVendor,
+    handleDeleteVendor,
+    handleAddExpense,
+    handleUpdateExpense,
+    handleDeleteExpense,
+    handleAddGuest,
+    handleUpdateGuest,
+    handleDeleteGuest,
+    handleImportGuests,
+    handleAddScheduleItem,
+    handleUpdateScheduleItem,
+    handleDeleteScheduleItem,
+    handleSavePoster,
+    handleDeletePoster,
+    handleGenerateIdeas,
+  } = useEventOperations(id, setEventData, setStatusAnnouncement);
 
   const TAB_KEYS = ['dashboard', 'tasks', 'vendors', 'expenses', 'guests', 'schedule', 'posters', 'ideas'];
 
@@ -94,285 +123,7 @@ export default function EventDetail() {
     }
   };
 
-  /* ========================================================================
-     TASK HANDLERS
-     ======================================================================== */
-  const handleToggleTask = async (taskId, updates) => {
-    try {
-      const res = await eventService.updateTask(id, taskId, updates);
-      setEventData((prev) => ({
-        ...prev,
-        tasks: prev.tasks.map((t) => (t.id === taskId ? res.data.task : t)),
-        metrics: res.data.metrics,
-      }));
-    } catch (err) {
-      alert(err.message || 'Failed to update task.');
-    }
-  };
-
-  const handleAddTask = async (taskData) => {
-    try {
-      const res = await eventService.createTask(id, taskData);
-      setEventData((prev) => ({
-        ...prev,
-        tasks: [...(prev.tasks || []), res.data.task],
-        metrics: res.data.metrics,
-      }));
-    } catch (err) {
-      alert(err.message || 'Failed to add task.');
-    }
-  };
-
-  const handleUpdateTask = async (taskId, updates) => {
-    try {
-      const res = await eventService.updateTask(id, taskId, updates);
-      setEventData((prev) => ({
-        ...prev,
-        tasks: prev.tasks.map((t) => (t.id === taskId ? res.data.task : t)),
-        metrics: res.data.metrics,
-      }));
-    } catch (err) {
-      alert(err.message || 'Failed to update task.');
-    }
-  };
-
-  const handleDeleteTask = async (taskId) => {
-    if (!window.confirm('Are you sure you want to delete this task?')) return;
-    try {
-      const res = await eventService.deleteTask(id, taskId);
-      setEventData((prev) => ({
-        ...prev,
-        tasks: prev.tasks.filter((t) => t.id !== taskId),
-        metrics: res.data.metrics,
-      }));
-    } catch (err) {
-      alert(err.message || 'Failed to delete task.');
-    }
-  };
-
-  /* ========================================================================
-     VENDOR HANDLERS
-     ======================================================================== */
-  const handleAddVendor = async (vendorData) => {
-    try {
-      const res = await eventService.createVendor(id, vendorData);
-      setEventData((prev) => ({
-        ...prev,
-        vendors: [...(prev.vendors || []), res.data.vendor],
-        metrics: res.data.metrics,
-      }));
-    } catch (err) {
-      alert(err.message || 'Failed to add vendor record.');
-    }
-  };
-
-  const handleUpdateVendor = async (vendorId, updates) => {
-    try {
-      const res = await eventService.updateVendor(id, vendorId, updates);
-      setEventData((prev) => ({
-        ...prev,
-        vendors: prev.vendors.map((v) => (v.id === vendorId ? res.data.vendor : v)),
-        metrics: res.data.metrics,
-      }));
-    } catch (err) {
-      alert(err.message || 'Failed to update vendor record.');
-    }
-  };
-
-  const handleDeleteVendor = async (vendorId) => {
-    if (!window.confirm('Are you sure you want to remove this vendor record?')) return;
-    try {
-      const res = await eventService.deleteVendor(id, vendorId);
-      setEventData((prev) => ({
-        ...prev,
-        vendors: prev.vendors.filter((v) => v.id !== vendorId),
-        metrics: res.data.metrics,
-      }));
-    } catch (err) {
-      alert(err.message || 'Failed to delete vendor record.');
-    }
-  };
-
-  /* ========================================================================
-     EXPENSE HANDLERS
-     ======================================================================== */
-  const handleAddExpense = async (expenseData) => {
-    try {
-      const res = await eventService.createExpense(id, expenseData);
-      setEventData((prev) => ({
-        ...prev,
-        expenses: [...(prev.expenses || []), res.data.expense],
-        metrics: res.data.metrics,
-      }));
-    } catch (err) {
-      alert(err.message || 'Failed to add expense.');
-    }
-  };
-
-  const handleUpdateExpense = async (expenseId, updates) => {
-    try {
-      const res = await eventService.updateExpense(id, expenseId, updates);
-      setEventData((prev) => ({
-        ...prev,
-        expenses: prev.expenses.map((e) => (e.id === expenseId ? res.data.expense : e)),
-        metrics: res.data.metrics,
-      }));
-    } catch (err) {
-      alert(err.message || 'Failed to update expense.');
-    }
-  };
-
-  const handleDeleteExpense = async (expenseId) => {
-    if (!window.confirm('Are you sure you want to remove this expense record?')) return;
-    try {
-      const res = await eventService.deleteExpense(id, expenseId);
-      setEventData((prev) => ({
-        ...prev,
-        expenses: prev.expenses.filter((e) => e.id !== expenseId),
-        metrics: res.data.metrics,
-      }));
-    } catch (err) {
-      alert(err.message || 'Failed to delete expense.');
-    }
-  };
-
-  /* ========================================================================
-     GUEST HANDLERS
-     ======================================================================== */
-  const handleAddGuest = async (guestData) => {
-    try {
-      const res = await eventService.createGuest(id, guestData);
-      setEventData((prev) => ({
-        ...prev,
-        guests: [...(prev.guests || []), res.data.guest],
-        metrics: res.data.metrics,
-      }));
-    } catch (err) {
-      alert(err.message || 'Failed to add guest.');
-    }
-  };
-
-  const handleUpdateGuest = async (guestId, updates) => {
-    try {
-      const res = await eventService.updateGuest(id, guestId, updates);
-      setEventData((prev) => ({
-        ...prev,
-        guests: prev.guests.map((g) => (g.id === guestId ? res.data.guest : g)),
-        metrics: res.data.metrics,
-      }));
-    } catch (err) {
-      alert(err.message || 'Failed to update guest.');
-    }
-  };
-
-  const handleDeleteGuest = async (guestId) => {
-    if (!window.confirm('Are you sure you want to remove this guest?')) return;
-    try {
-      const res = await eventService.deleteGuest(id, guestId);
-      setEventData((prev) => ({
-        ...prev,
-        guests: prev.guests.filter((g) => g.id !== guestId),
-        metrics: res.data.metrics,
-      }));
-    } catch (err) {
-      alert(err.message || 'Failed to delete guest.');
-    }
-  };
-
-  const handleImportGuests = async (guestsList) => {
-    try {
-      const res = await eventService.importGuests(id, guestsList);
-      setEventData((prev) => ({
-        ...prev,
-        guests: res.data.guests,
-        metrics: res.data.metrics,
-      }));
-    } catch (err) {
-      alert(err.message || 'Failed to import guests.');
-    }
-  };
-
-  /* ========================================================================
-     SCHEDULE / RUN SHEET HANDLERS
-     ======================================================================== */
-  const handleAddScheduleItem = async (itemData) => {
-    try {
-      const res = await eventService.createScheduleItem(id, itemData);
-      setEventData((prev) => ({
-        ...prev,
-        schedule: [...(prev.schedule || []), res.data.item],
-        metrics: res.data.metrics,
-      }));
-    } catch (err) {
-      alert(err.message || 'Failed to add schedule item.');
-    }
-  };
-
-  const handleUpdateScheduleItem = async (itemId, updates) => {
-    try {
-      const res = await eventService.updateScheduleItem(id, itemId, updates);
-      setEventData((prev) => ({
-        ...prev,
-        schedule: prev.schedule.map((s) => (s.id === itemId ? res.data.item : s)),
-        metrics: res.data.metrics,
-      }));
-    } catch (err) {
-      alert(err.message || 'Failed to update schedule item.');
-    }
-  };
-
-  const handleDeleteScheduleItem = async (itemId) => {
-    if (!window.confirm('Are you sure you want to delete this schedule item?')) return;
-    try {
-      const res = await eventService.deleteScheduleItem(id, itemId);
-      setEventData((prev) => ({
-        ...prev,
-        schedule: prev.schedule.filter((s) => s.id !== itemId),
-        metrics: res.data.metrics,
-      }));
-    } catch (err) {
-      alert(err.message || 'Failed to delete schedule item.');
-    }
-  };
-
-  /* ========================================================================
-     POSTER HANDLERS
-     ======================================================================== */
-  const handleSavePoster = async (posterData) => {
-    const res = await eventService.savePoster(id, posterData);
-    setEventData((prev) => ({
-      ...prev,
-      posters: res.data.posters,
-    }));
-  };
-
-  const handleDeletePoster = async (posterId) => {
-    if (!window.confirm('Are you sure you want to remove this saved poster?')) return;
-    try {
-      const res = await eventService.deletePoster(id, posterId);
-      setEventData((prev) => ({
-        ...prev,
-        posters: res.data.posters,
-      }));
-    } catch (err) {
-      alert(err.message || 'Failed to delete poster.');
-    }
-  };
-
-  const handleGenerateIdeas = async () => {
-    setIsGeneratingIdeas(true);
-    try {
-      const res = await eventService.generateIdeas(id);
-      setEventData((prev) => ({
-        ...prev,
-        ideas: res.data.ideas,
-      }));
-    } catch (err) {
-      alert(err.message || 'Failed to synthesize creative ideas.');
-    } finally {
-      setIsGeneratingIdeas(false);
-    }
-  };
+  /* Sub-entity operations and confirmation flows are managed by useEventOperations */
 
   if (loading) {
     return (
@@ -403,6 +154,26 @@ export default function EventDetail() {
 
   return (
     <div className="container py-8 plan-results-view">
+      {/* Accessible Non-blocking Error Banner */}
+      {opError && (
+        <div
+          role="alert"
+          className="mb-4 p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 flex items-center justify-between"
+        >
+          <div className="flex items-center gap-2">
+            <AlertCircle size={18} />
+            <span className="text-sm font-medium">{opError}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setOpError('')}
+            className="text-xs font-semibold hover:underline px-2 py-1"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* Top action bar */}
       <div className="results-top-bar flex items-center justify-between">
         <button
@@ -739,6 +510,15 @@ export default function EventDetail() {
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmLabel={confirmModal.confirmLabel}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={closeConfirmModal}
+      />
     </div>
   );
 }

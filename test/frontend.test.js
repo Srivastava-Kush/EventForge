@@ -62,11 +62,20 @@ describe("Frontend Architecture and Accessibility (A11y) Verification", () => {
         "src/components/event/EventForm.jsx",
         "src/components/chatbot/ChatWindow.jsx",
         "src/components/common/ErrorBoundary.jsx",
+        "src/components/common/ConfirmModal.jsx",
+        "src/hooks/useEventOperations.js",
         "src/layouts/MainLayout.jsx",
       ];
       for (const comp of expectedComponents) {
         assert.ok(fs.existsSync(path.join(FRONTEND_DIR, comp)), `Missing component: ${comp}`);
       }
+    });
+
+    test("ConfirmModal implements accessible modal dialog with escape dismissal", () => {
+      const modal = readFrontendFile("src/components/common/ConfirmModal.jsx");
+      assert.match(modal, /role="dialog"/);
+      assert.match(modal, /aria-modal="true"/);
+      assert.match(modal, /Escape/);
     });
   });
 

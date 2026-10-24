@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { eventService } from '../services/event.service.js';
 import EventCard from '../components/event/EventCard.jsx';
 import Loader from '../components/common/Loader.jsx';
+import ConfirmModal from '../components/common/ConfirmModal.jsx';
 import {
   PlusCircle,
   Calendar,
@@ -20,6 +21,11 @@ export default function Dashboard() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    eventId: null,
+  });
 
   useEffect(() => {
     let ignore = false;
@@ -45,13 +51,22 @@ export default function Dashboard() {
     };
   }, []);
 
-  const handleDelete = async (eventId) => {
-    if (!window.confirm('Are you sure you want to delete this event plan?')) return;
+  const handleDelete = (eventId) => {
+    setConfirmModal({
+      isOpen: true,
+      eventId,
+    });
+  };
+
+  const handleConfirmDelete = async () => {
+    const eventId = confirmModal.eventId;
+    if (!eventId) return;
+    setDeleteError('');
     try {
       await eventService.deleteEvent(eventId);
       setEvents((prev) => prev.filter((ev) => ev._id !== eventId));
     } catch (err) {
-      alert(err.message || 'Failed to delete event plan.');
+      setDeleteError(err.message || 'Failed to delete event plan.');
     }
   };
 
@@ -202,6 +217,32 @@ export default function Dashboard() {
           </div>
         </>
       )}
+
+      {deleteError && (
+        <div
+          role="alert"
+          className="fixed bottom-4 right-4 z-50 p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 flex items-center gap-3 shadow-lg"
+        >
+          <AlertCircle size={18} />
+          <span className="text-sm">{deleteError}</span>
+          <button
+            type="button"
+            onClick={() => setDeleteError('')}
+            className="text-xs font-bold px-1.5 py-0.5 ml-2 hover:underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title="Delete Event Plan"
+        message="Are you sure you want to permanently delete this event plan and all associated tasks, vendors, and expenses?"
+        confirmLabel="Delete Plan"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setConfirmModal({ isOpen: false, eventId: null })}
+      />
     </div>
   );
 }

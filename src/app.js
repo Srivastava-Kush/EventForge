@@ -108,8 +108,8 @@ export function createApp(options = {}) {
     res.status(HTTP_STATUS.OK).json({ success: true, message: "Event Planner API is active." });
   });
 
-  // Health check
-  app.get("/api/health", (req, res) => {
+  // Health check endpoints (Cloud standard: /healthz and /api/health)
+  app.get(["/api/health", "/healthz"], (req, res) => {
     res.status(HTTP_STATUS.OK).json({ success: true, data: { status: "ok" } });
   });
 

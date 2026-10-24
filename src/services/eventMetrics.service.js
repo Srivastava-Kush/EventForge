@@ -1,3 +1,12 @@
+/**
+ * Progress weighting ratios for overall preparation index.
+ */
+export const PROGRESS_WEIGHTS = Object.freeze({
+  TASKS: 0.45,
+  VENDORS: 0.45,
+  SCHEDULE: 10,
+});
+
 /** Default sample run-sheet activities by event type */
 export function getDefaultSchedule(eventType) {
   if (eventType === "wedding") {
@@ -93,7 +102,14 @@ export function computeMetrics(event) {
   // 6. Overall Weighted Preparation Progress (Tasks 45%, Vendors 45%, Schedule 10%)
   let overallProgress = 0;
   if (totalTasks > 0 && totalVendors > 0) {
-    overallProgress = Math.round(taskProgress * 0.45 + vendorProgress * 0.45 + (totalScheduleItems > 0 ? (completedScheduleItems / totalScheduleItems) * 10 : 10));
+    const scheduleContrib = totalScheduleItems > 0
+      ? (completedScheduleItems / totalScheduleItems) * PROGRESS_WEIGHTS.SCHEDULE
+      : PROGRESS_WEIGHTS.SCHEDULE;
+    overallProgress = Math.round(
+      taskProgress * PROGRESS_WEIGHTS.TASKS +
+      vendorProgress * PROGRESS_WEIGHTS.VENDORS +
+      scheduleContrib,
+    );
   } else if (totalTasks > 0) {
     overallProgress = taskProgress;
   } else if (totalVendors > 0) {

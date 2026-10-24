@@ -34,68 +34,94 @@ function getIdeasService() {
 }
 
 /**
+ * Transforms planned timeline tasks into interactive task subdocuments.
+ * @param {Array<object>} [planTasks=[]]
+ * @returns {Array<object>}
+ */
+export function initializeTasksFromPlan(planTasks = []) {
+  return (planTasks || []).map((t) => ({
+    id: t.id || `task-${randomUUID().slice(0, 8)}`,
+    title: t.title,
+    phase: t.phase || "Plan & book",
+    dueDate: t.dueDate || "",
+    urgent: Boolean(t.urgent),
+    status: "pending",
+    notes: "",
+    assignedTo: "",
+    isCustom: false,
+  }));
+}
+
+/**
+ * Transforms planned vendor categories into interactive vendor subdocuments.
+ * @param {Array<object>} [planVendors=[]]
+ * @returns {Array<object>}
+ */
+export function initializeVendorsFromPlan(planVendors = []) {
+  return (planVendors || []).map((v) => ({
+    id: v.id || `vendor-${randomUUID().slice(0, 8)}`,
+    name: v.name,
+    priority: v.priority || "essential",
+    matchesPriority: Boolean(v.matchesPriority),
+    bookBy: v.bookBy || "",
+    bookNow: Boolean(v.bookNow),
+    tip: v.tip || "",
+    bookingStatus: "pending",
+    vendorName: "",
+    contactPerson: "",
+    contactEmail: "",
+    contactPhone: "",
+    quotationAmount: 0,
+    agreedAmount: 0,
+    paidAmount: 0,
+    notes: "",
+    documents: [],
+  }));
+}
+
+/**
+ * Transforms planned budget items into interactive expense subdocuments.
+ * @param {Array<object>} [budgetItems=[]]
+ * @returns {Array<object>}
+ */
+export function initializeExpensesFromPlan(budgetItems = []) {
+  return (budgetItems || []).map((b) => ({
+    id: `exp-${b.key || randomUUID().slice(0, 8)}`,
+    title: b.label,
+    category: b.label,
+    estimatedCost: Number(b.amount) || 0,
+    actualCost: 0,
+    paidAmount: 0,
+    status: "unpaid",
+    dueDate: "",
+    paidDate: "",
+    linkedVendorId: null,
+    linkedTaskId: null,
+    notes: "",
+    createdAt: new Date(),
+  }));
+}
+
+/**
  * Initializes interactive sub-entities for an event if not already populated.
+ * @param {object} event
+ * @returns {boolean} Whether any fields were populated and modified
  */
 function ensureInteractiveEntities(event) {
   let modified = false;
 
   if (!event.tasks || event.tasks.length === 0) {
-    const planTasks = event.plan?.timeline?.tasks || [];
-    event.tasks = planTasks.map((t) => ({
-      id: t.id || `task-${randomUUID().slice(0, 8)}`,
-      title: t.title,
-      phase: t.phase || "Plan & book",
-      dueDate: t.dueDate || "",
-      urgent: Boolean(t.urgent),
-      status: "pending",
-      notes: "",
-      assignedTo: "",
-      isCustom: false,
-    }));
+    event.tasks = initializeTasksFromPlan(event.plan?.timeline?.tasks);
     modified = true;
   }
 
   if (!event.vendors || event.vendors.length === 0) {
-    const planVendors = event.plan?.vendors || [];
-    event.vendors = planVendors.map((v) => ({
-      id: v.id || `vendor-${randomUUID().slice(0, 8)}`,
-      name: v.name,
-      priority: v.priority || "essential",
-      matchesPriority: Boolean(v.matchesPriority),
-      bookBy: v.bookBy || "",
-      bookNow: Boolean(v.bookNow),
-      tip: v.tip || "",
-      bookingStatus: "pending",
-      vendorName: "",
-      contactPerson: "",
-      contactEmail: "",
-      contactPhone: "",
-      quotationAmount: 0,
-      agreedAmount: 0,
-      paidAmount: 0,
-      notes: "",
-      documents: [],
-    }));
+    event.vendors = initializeVendorsFromPlan(event.plan?.vendors);
     modified = true;
   }
 
   if (!event.expenses || event.expenses.length === 0) {
-    const budgetItems = event.plan?.budget?.items || [];
-    event.expenses = budgetItems.map((b) => ({
-      id: `exp-${b.key || randomUUID().slice(0, 8)}`,
-      title: b.label,
-      category: b.label,
-      estimatedCost: Number(b.amount) || 0,
-      actualCost: 0,
-      paidAmount: 0,
-      status: "unpaid",
-      dueDate: "",
-      paidDate: "",
-      linkedVendorId: null,
-      linkedTaskId: null,
-      notes: "",
-      createdAt: new Date(),
-    }));
+    event.expenses = initializeExpensesFromPlan(event.plan?.budget?.items);
     modified = true;
   }
 
@@ -120,6 +146,9 @@ function ensureInteractiveEntities(event) {
 /**
  * Validates input, runs buildPlan(), calls getIdeas(), and saves the result
  * to MongoDB with fully initialized interactive tasks, vendors, and expenses.
+ * @param {object} body
+ * @param {{ user?: object, now?: Date }} [options]
+ * @returns {Promise<{ plan: object, ideas: object, event: object|null }>}
  */
 export async function createEvent(body, { user = null, now = new Date() } = {}) {
   // 1. Validate
@@ -134,55 +163,10 @@ export async function createEvent(body, { user = null, now = new Date() } = {}) 
   // 3. Get ideas from LLM (or curated fallback)
   const ideasResult = await getIdeasService().getIdeas(validation.data, plan);
 
-  // 4. Initialize interactive components
-  const tasks = (plan.timeline?.tasks || []).map((t) => ({
-    id: t.id || `task-${randomUUID().slice(0, 8)}`,
-    title: t.title,
-    phase: t.phase || "Plan & book",
-    dueDate: t.dueDate || "",
-    urgent: Boolean(t.urgent),
-    status: "pending",
-    notes: "",
-    assignedTo: "",
-    isCustom: false,
-  }));
-
-  const vendors = (plan.vendors || []).map((v) => ({
-    id: v.id || `vendor-${randomUUID().slice(0, 8)}`,
-    name: v.name,
-    priority: v.priority || "essential",
-    matchesPriority: Boolean(v.matchesPriority),
-    bookBy: v.bookBy || "",
-    bookNow: Boolean(v.bookNow),
-    tip: v.tip || "",
-    bookingStatus: "pending",
-    vendorName: "",
-    contactPerson: "",
-    contactEmail: "",
-    contactPhone: "",
-    quotationAmount: 0,
-    agreedAmount: 0,
-    paidAmount: 0,
-    notes: "",
-    documents: [],
-  }));
-
-  const expenses = (plan.budget?.items || []).map((b) => ({
-    id: `exp-${b.key || randomUUID().slice(0, 8)}`,
-    title: b.label,
-    category: b.label,
-    estimatedCost: Number(b.amount) || 0,
-    actualCost: 0,
-    paidAmount: 0,
-    status: "unpaid",
-    dueDate: "",
-    paidDate: "",
-    linkedVendorId: null,
-    linkedTaskId: null,
-    notes: "",
-    createdAt: new Date(),
-  }));
-
+  // 4. Initialize interactive components using shared transformers (DRY)
+  const tasks = initializeTasksFromPlan(plan.timeline?.tasks);
+  const vendors = initializeVendorsFromPlan(plan.vendors);
+  const expenses = initializeExpensesFromPlan(plan.budget?.items);
   const schedule = getDefaultSchedule(validation.data.eventType);
 
   // 5. Persist if user is authenticated
@@ -272,6 +256,41 @@ export async function deleteEvent(eventId, userId) {
   return event;
 }
 
+/**
+ * Generic helper to locate the index of an item in any embedded subdocument array.
+ * Throws AppError 404 if item does not exist.
+ *
+ * @param {object} event - Mongoose event document
+ * @param {string} collection - Array property name (e.g. "tasks", "vendors")
+ * @param {string} itemId - Target subdocument ID
+ * @param {string} entityName - Human-readable label for error reporting
+ * @returns {number} Index in array
+ */
+function findSubEntityIndex(event, collection, itemId, entityName) {
+  const items = event[collection] || [];
+  const index = items.findIndex((item) => item.id === itemId);
+  if (index === -1) {
+    throw new AppError(`${entityName} not found.`, HTTP_STATUS.NOT_FOUND);
+  }
+  return index;
+}
+
+/**
+ * Generic helper to remove a subdocument from an event by ID and recompute metrics.
+ *
+ * @param {string} eventId
+ * @param {string} collection - Array property name
+ * @param {string} itemId
+ * @param {string} userId
+ * @returns {Promise<{ metrics: object }>}
+ */
+async function removeSubEntity(eventId, collection, itemId, userId) {
+  const event = await getOwnedEvent(eventId, userId);
+  event[collection] = (event[collection] || []).filter((item) => item.id !== itemId);
+  await event.save();
+  return { metrics: computeMetrics(event) };
+}
+
 /* ==========================================================================
    TASK MANAGEMENT OPERATIONS (Separate from vendor booking status)
    ========================================================================== */
@@ -303,9 +322,7 @@ export async function createTask(eventId, taskData, userId) {
 
 export async function updateTask(eventId, taskId, updates, userId) {
   const event = await getOwnedEvent(eventId, userId);
-
-  const taskIndex = event.tasks.findIndex((t) => t.id === taskId);
-  if (taskIndex === -1) throw new AppError("Task not found.", HTTP_STATUS.NOT_FOUND);
+  const taskIndex = findSubEntityIndex(event, "tasks", taskId, "Task");
 
   const current = event.tasks[taskIndex];
   if (updates.status !== undefined) {
@@ -325,11 +342,7 @@ export async function updateTask(eventId, taskId, updates, userId) {
 }
 
 export async function deleteTask(eventId, taskId, userId) {
-  const event = await getOwnedEvent(eventId, userId);
-
-  event.tasks = event.tasks.filter((t) => t.id !== taskId);
-  await event.save();
-  return { metrics: computeMetrics(event) };
+  return removeSubEntity(eventId, "tasks", taskId, userId);
 }
 
 /* ==========================================================================
@@ -370,9 +383,7 @@ export async function createVendor(eventId, vendorData, userId) {
 
 export async function updateVendor(eventId, vendorId, updates, userId) {
   const event = await getOwnedEvent(eventId, userId);
-
-  const vendorIndex = event.vendors.findIndex((v) => v.id === vendorId);
-  if (vendorIndex === -1) throw new AppError("Vendor not found.", HTTP_STATUS.NOT_FOUND);
+  const vendorIndex = findSubEntityIndex(event, "vendors", vendorId, "Vendor");
 
   const current = event.vendors[vendorIndex];
   if (updates.bookingStatus !== undefined) current.bookingStatus = updates.bookingStatus;
@@ -394,11 +405,7 @@ export async function updateVendor(eventId, vendorId, updates, userId) {
 }
 
 export async function deleteVendor(eventId, vendorId, userId) {
-  const event = await getOwnedEvent(eventId, userId);
-
-  event.vendors = event.vendors.filter((v) => v.id !== vendorId);
-  await event.save();
-  return { metrics: computeMetrics(event) };
+  return removeSubEntity(eventId, "vendors", vendorId, userId);
 }
 
 /* ==========================================================================
@@ -441,9 +448,7 @@ export async function createExpense(eventId, expenseData, userId) {
 
 export async function updateExpense(eventId, expenseId, updates, userId) {
   const event = await getOwnedEvent(eventId, userId);
-
-  const expIndex = event.expenses.findIndex((e) => e.id === expenseId);
-  if (expIndex === -1) throw new AppError("Expense not found.", HTTP_STATUS.NOT_FOUND);
+  const expIndex = findSubEntityIndex(event, "expenses", expenseId, "Expense");
 
   const current = event.expenses[expIndex];
   if (updates.title !== undefined) current.title = updates.title.trim();
@@ -471,11 +476,7 @@ export async function updateExpense(eventId, expenseId, updates, userId) {
 }
 
 export async function deleteExpense(eventId, expenseId, userId) {
-  const event = await getOwnedEvent(eventId, userId);
-
-  event.expenses = event.expenses.filter((e) => e.id !== expenseId);
-  await event.save();
-  return { metrics: computeMetrics(event) };
+  return removeSubEntity(eventId, "expenses", expenseId, userId);
 }
 
 /* ==========================================================================
@@ -512,9 +513,7 @@ export async function createGuest(eventId, guestData, userId) {
 
 export async function updateGuest(eventId, guestId, updates, userId) {
   const event = await getOwnedEvent(eventId, userId);
-
-  const guestIndex = event.guests.findIndex((g) => g.id === guestId);
-  if (guestIndex === -1) throw new AppError("Guest not found.", HTTP_STATUS.NOT_FOUND);
+  const guestIndex = findSubEntityIndex(event, "guests", guestId, "Guest");
 
   const current = event.guests[guestIndex];
   if (updates.name !== undefined) current.name = updates.name.trim();
@@ -536,12 +535,18 @@ export async function updateGuest(eventId, guestId, updates, userId) {
 }
 
 export async function deleteGuest(eventId, guestId, userId) {
-  const event = await getOwnedEvent(eventId, userId);
-
-  event.guests = event.guests.filter((g) => g.id !== guestId);
-  await event.save();
-  return { metrics: computeMetrics(event) };
+  return removeSubEntity(eventId, "guests", guestId, userId);
 }
+
+export const GUEST_LIMITS = Object.freeze({
+  MAX_IMPORT_BATCH: 500,
+  MAX_EVENT_TOTAL: 5000,
+  MAX_PLUS_ONES: 20,
+  MAX_NAME_LENGTH: 100,
+  MAX_EMAIL_LENGTH: 150,
+  MAX_PHONE_LENGTH: 30,
+  MAX_TEXT_LENGTH: 500,
+});
 
 export async function importGuests(eventId, guestsList, userId) {
   const event = await getOwnedEvent(eventId, userId);
@@ -550,33 +555,33 @@ export async function importGuests(eventId, guestsList, userId) {
     throw new AppError("Guest list must be a non-empty array.", HTTP_STATUS.BAD_REQUEST);
   }
 
-  if (guestsList.length > 500) {
-    throw new AppError("Cannot import more than 500 guests in a single request.", HTTP_STATUS.BAD_REQUEST);
+  if (guestsList.length > GUEST_LIMITS.MAX_IMPORT_BATCH) {
+    throw new AppError(`Cannot import more than ${GUEST_LIMITS.MAX_IMPORT_BATCH} guests in a single request.`, HTTP_STATUS.BAD_REQUEST);
   }
 
-  if ((event.guests?.length || 0) + guestsList.length > 5000) {
-    throw new AppError("Event guest list cannot exceed 5000 guests.", HTTP_STATUS.BAD_REQUEST);
+  if ((event.guests?.length || 0) + guestsList.length > GUEST_LIMITS.MAX_EVENT_TOTAL) {
+    throw new AppError(`Event guest list cannot exceed ${GUEST_LIMITS.MAX_EVENT_TOTAL} guests.`, HTTP_STATUS.BAD_REQUEST);
   }
 
   const validNewGuests = [];
   for (const item of guestsList) {
     if (!item || typeof item !== "object") continue;
-    const name = item.name ? String(item.name).trim().slice(0, 100) : "";
+    const name = item.name ? String(item.name).trim().slice(0, GUEST_LIMITS.MAX_NAME_LENGTH) : "";
     if (!name) continue;
 
     validNewGuests.push({
       id: `guest-${randomUUID().slice(0, 8)}`,
       name,
-      email: item.email ? String(item.email).trim().slice(0, 150) : "",
-      phone: item.phone ? String(item.phone).trim().slice(0, 30) : "",
+      email: item.email ? String(item.email).trim().slice(0, GUEST_LIMITS.MAX_EMAIL_LENGTH) : "",
+      phone: item.phone ? String(item.phone).trim().slice(0, GUEST_LIMITS.MAX_PHONE_LENGTH) : "",
       group: item.group ? String(item.group).trim().slice(0, 50) : "General",
       invitationStatus: ["not_sent", "sent", "opened"].includes(item.invitationStatus) ? item.invitationStatus : "not_sent",
       rsvpStatus: ["pending", "attending", "declined", "tentative"].includes(item.rsvpStatus) ? item.rsvpStatus : "pending",
-      plusOnes: Math.min(20, Math.max(0, parseInt(item.plusOnes, 10) || 0)),
+      plusOnes: Math.min(GUEST_LIMITS.MAX_PLUS_ONES, Math.max(0, parseInt(item.plusOnes, 10) || 0)),
       plusOneNames: item.plusOneNames ? String(item.plusOneNames).trim().slice(0, 200) : "",
       dietary: item.dietary ? String(item.dietary).trim().slice(0, 200) : "",
       tableOrSeating: item.tableOrSeating ? String(item.tableOrSeating).trim().slice(0, 50) : "",
-      notes: item.notes ? String(item.notes).trim().slice(0, 500) : "",
+      notes: item.notes ? String(item.notes).trim().slice(0, GUEST_LIMITS.MAX_TEXT_LENGTH) : "",
       updatedAt: new Date(),
     });
   }
@@ -616,9 +621,7 @@ export async function createScheduleItem(eventId, itemData, userId) {
 
 export async function updateScheduleItem(eventId, itemId, updates, userId) {
   const event = await getOwnedEvent(eventId, userId);
-
-  const idx = event.schedule.findIndex((s) => s.id === itemId);
-  if (idx === -1) throw new AppError("Schedule item not found.", HTTP_STATUS.NOT_FOUND);
+  const idx = findSubEntityIndex(event, "schedule", itemId, "Schedule item");
 
   const current = event.schedule[idx];
   if (updates.startTime !== undefined) current.startTime = updates.startTime.trim();
@@ -636,11 +639,7 @@ export async function updateScheduleItem(eventId, itemId, updates, userId) {
 }
 
 export async function deleteScheduleItem(eventId, itemId, userId) {
-  const event = await getOwnedEvent(eventId, userId);
-
-  event.schedule = event.schedule.filter((s) => s.id !== itemId);
-  await event.save();
-  return { metrics: computeMetrics(event) };
+  return removeSubEntity(eventId, "schedule", itemId, userId);
 }
 
 /* ==========================================================================

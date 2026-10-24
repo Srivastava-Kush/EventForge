@@ -1,10 +1,11 @@
+import { fenceSafe, screenPromptInjection } from "../security/promptGuard.js";
+
 /**
  * Extracts user-facing prompt text from an LLM prompt context object.
  * Moved here from ai/ideas.js to keep prompt logic centralised and testable.
  */
 
-/** Removes angle brackets so user text can never close or open a prompt fence. */
-export const fenceSafe = (value) => value.replace(/[<>]/g, "");
+export { fenceSafe, screenPromptInjection };
 
 /**
  * Builds a plain-text event summary for context injection into the chat system prompt.

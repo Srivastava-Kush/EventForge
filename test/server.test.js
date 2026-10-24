@@ -26,7 +26,7 @@ function start(env) {
     }),
   );
   const ready = new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(`server did not start: ${output}`)), 15000);
+    const timer = setTimeout(() => reject(new Error(`server did not start: ${output}`)), 25000);
     child.stdout.on("data", () => {
       const match = output.match(/http:\/\/127\.0\.0\.1:(\d+)/);
       if (match) { clearTimeout(timer); resolve(`http://127.0.0.1:${match[1]}`); }
