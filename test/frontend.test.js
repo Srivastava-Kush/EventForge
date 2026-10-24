@@ -133,8 +133,8 @@ describe("Frontend Architecture and Accessibility (A11y) Verification", () => {
 
     test("modals implement WAI-ARIA dialog role with escape dismissal", () => {
       const expense = readFrontendFile("src/components/event/ExpenseTracker.jsx");
-      const vendor = readFrontendFile("src/components/event/VendorManager.jsx");
-      const guest = readFrontendFile("src/components/event/GuestManager.jsx");
+      const vendor = readFrontendFile("src/components/event/VendorModal.jsx");
+      const guest = readFrontendFile("src/components/event/GuestModal.jsx");
       const task = readFrontendFile("src/components/event/TaskChecklist.jsx");
       const schedule = readFrontendFile("src/components/event/EventSchedule.jsx");
 
@@ -142,8 +142,10 @@ describe("Frontend Architecture and Accessibility (A11y) Verification", () => {
       assert.match(expense, /aria-modal="true"/);
       assert.match(vendor, /role="dialog"/);
       assert.match(vendor, /aria-modal="true"/);
+      assert.match(vendor, /Escape/);
       assert.match(guest, /role="dialog"/);
       assert.match(guest, /aria-modal="true"/);
+      assert.match(guest, /Escape/);
       assert.match(task, /role="dialog"/);
       assert.match(task, /aria-modal="true"/);
       assert.match(task, /Escape/);
