@@ -49,7 +49,14 @@ src/
 2. **Controller Layer (`src/controllers/`):**
    - Receives Express `req`/`res`, unwraps parameters, delegates to service functions, and formats HTTP responses using standardized JSON envelopes.
 3. **Service Layer (`src/services/`):**
-   - **`event.service.js`:** Encapsulates all domain logic. Implements `getOwnedEvent(eventId, userId)` helper to enforce multi-tenant isolation, computes live readiness metrics, and manages embedded entities.
+   - **`event.service.js`:** Aggregate Root. Pure single-responsibility service orchestrating event creation, ownership resolution (`getOwnedEvent`), user event listing, deletion, and AI idea generation. Domain operations (tasks, vendors, expenses, guests, schedule, posters) are imported and invoked directly by their respective controllers without middle-man indirection.
+   - **`task.service.js`:** Task checklist domain lifecycle (creation, status updates, completion timestamps, plan hydration).
+   - **`vendor.service.js`:** Vendor procurement domain (quotations, contacts, booking statuses, plan hydration).
+   - **`expense.service.js`:** Financial ledger domain (actual vs estimated budget tracking, payment statuses).
+   - **`guest.service.js`:** RSVP and guest attendance domain (individual entries, seating assignments, batch CSV import with limits).
+   - **`schedule.service.js`:** Day-of run-sheet domain (chronological event timelines and vendor linking).
+   - **`eventMetrics.service.js`:** Live dashboard KPI calculation (budget utilization, booking completion, readiness scoring).
+   - **`poster.service.js`:** AI SVG and raster poster design studio (prompt generation, SVG sanitization, poster persistence).
    - **`auth.service.js`:** Handles password hashing via `bcryptjs`, JWT token signing with `HS256`, and user identity verification.
    - **`llm.service.js`:** Interacts with Google Gemini (`gemini-2.5-flash`) or Anthropic SDKs to generate tailored creative concepts and conversational responses.
 4. **Data Access Layer (`src/models/`):**

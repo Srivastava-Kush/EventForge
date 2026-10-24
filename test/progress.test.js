@@ -1,6 +1,7 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
-import { computeMetrics, generateSvgPoster } from "../src/services/event.service.js";
+import { computeMetrics } from "../src/services/eventMetrics.service.js";
+import { generateSvgPoster } from "../src/services/poster.service.js";
 
 describe("Event Progress & Budget Metrics Computation", () => {
   test("calculates accurate task progress and overdue status", () => {

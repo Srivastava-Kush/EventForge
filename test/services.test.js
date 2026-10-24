@@ -7,6 +7,12 @@ import ChatHistory from "../src/models/ChatHistory.model.js";
 import * as authService from "../src/services/auth.service.js";
 import * as chatService from "../src/services/chat.service.js";
 import * as eventService from "../src/services/event.service.js";
+import * as taskService from "../src/services/task.service.js";
+import * as vendorService from "../src/services/vendor.service.js";
+import * as expenseService from "../src/services/expense.service.js";
+import * as guestService from "../src/services/guest.service.js";
+import * as scheduleService from "../src/services/schedule.service.js";
+import * as posterService from "../src/services/poster.service.js";
 import { HTTP_STATUS } from "../src/constants/httpStatus.js";
 
 describe("Auth Service Unit Tests", () => {
@@ -245,19 +251,19 @@ describe("Event Service Sub-Resource Operations", () => {
   /* Tasks */
   test("createTask validates title and appends custom task with metrics update", async () => {
     await assert.rejects(
-      () => eventService.createTask("evt-123", { title: "" }, "usr-456"),
+      () => taskService.createTask("evt-123", { title: "" }, "usr-456"),
       (err) => err.statusCode === HTTP_STATUS.BAD_REQUEST,
     );
 
-    const result = await eventService.createTask("evt-123", { title: "Hire Strings Quartet", phase: "Plan & book" }, "usr-456");
+    const result = await taskService.createTask("evt-123", { title: "Hire Strings Quartet", phase: "Plan & book" }, "usr-456");
     assert.equal(result.task.title, "Hire Strings Quartet");
     assert.equal(result.task.isCustom, true);
     assert.ok(result.metrics.tasks.total >= 2);
   });
 
   test("updateTask updates task status, timestamps, and details", async () => {
-    const { task } = await eventService.createTask("evt-123", { title: "Check sound system" }, "usr-456");
-    const updated = await eventService.updateTask("evt-123", task.id, { status: "completed", notes: "Tested mic" }, "usr-456");
+    const { task } = await taskService.createTask("evt-123", { title: "Check sound system" }, "usr-456");
+    const updated = await taskService.updateTask("evt-123", task.id, { status: "completed", notes: "Tested mic" }, "usr-456");
 
     assert.equal(updated.task.status, "completed");
     assert.ok(updated.task.completedAt);
@@ -265,18 +271,18 @@ describe("Event Service Sub-Resource Operations", () => {
   });
 
   test("deleteTask removes target task", async () => {
-    const { task } = await eventService.createTask("evt-123", { title: "Temporary task" }, "usr-456");
+    const { task } = await taskService.createTask("evt-123", { title: "Temporary task" }, "usr-456");
     const beforeCount = mockEvent.tasks.length;
-    await eventService.deleteTask("evt-123", task.id, "usr-456");
+    await taskService.deleteTask("evt-123", task.id, "usr-456");
     assert.equal(mockEvent.tasks.length, beforeCount - 1);
   });
 
   /* Vendors */
   test("createVendor, updateVendor, and deleteVendor manage vendor records", async () => {
-    const created = await eventService.createVendor("evt-123", { name: "Artisan Bakery", priority: "recommended" }, "usr-456");
+    const created = await vendorService.createVendor("evt-123", { name: "Artisan Bakery", priority: "recommended" }, "usr-456");
     assert.equal(created.vendor.name, "Artisan Bakery");
 
-    const updated = await eventService.updateVendor(
+    const updated = await vendorService.updateVendor(
       "evt-123",
       created.vendor.id,
       { bookingStatus: "booked", agreedAmount: 650 },
@@ -286,13 +292,13 @@ describe("Event Service Sub-Resource Operations", () => {
     assert.equal(updated.vendor.agreedAmount, 650);
     assert.equal(updated.metrics.vendors.booked, 1);
 
-    await eventService.deleteVendor("evt-123", created.vendor.id, "usr-456");
+    await vendorService.deleteVendor("evt-123", created.vendor.id, "usr-456");
     assert.ok(!mockEvent.vendors.some((v) => v.id === created.vendor.id));
   });
 
   /* Expenses */
   test("createExpense, updateExpense, and deleteExpense manage financial ledger", async () => {
-    const created = await eventService.createExpense(
+    const created = await expenseService.createExpense(
       "evt-123",
       { title: "Floral Centerpieces", estimatedCost: 1200, actualCost: 1100, paidAmount: 500 },
       "usr-456",
@@ -300,7 +306,7 @@ describe("Event Service Sub-Resource Operations", () => {
     assert.equal(created.expense.title, "Floral Centerpieces");
     assert.equal(created.expense.actualCost, 1100);
 
-    const updated = await eventService.updateExpense(
+    const updated = await expenseService.updateExpense(
       "evt-123",
       created.expense.id,
       { paidAmount: 1100, status: "paid" },
@@ -309,16 +315,16 @@ describe("Event Service Sub-Resource Operations", () => {
     assert.equal(updated.expense.paidAmount, 1100);
     assert.equal(updated.expense.status, "paid");
 
-    await eventService.deleteExpense("evt-123", created.expense.id, "usr-456");
+    await expenseService.deleteExpense("evt-123", created.expense.id, "usr-456");
     assert.ok(!mockEvent.expenses.some((e) => e.id === created.expense.id));
   });
 
   /* Guests */
   test("createGuest, importGuests, updateGuest, and deleteGuest manage RSVPs and seating", async () => {
-    const created = await eventService.createGuest("evt-123", { name: "Ananya Patel", email: "ananya@example.com", plusOnes: 1 }, "usr-456");
+    const created = await guestService.createGuest("evt-123", { name: "Ananya Patel", email: "ananya@example.com", plusOnes: 1 }, "usr-456");
     assert.equal(created.guest.name, "Ananya Patel");
 
-    const imported = await eventService.importGuests(
+    const imported = await guestService.importGuests(
       "evt-123",
       [
         { name: "Vikram Sen", email: "vikram@example.com" },
@@ -328,7 +334,7 @@ describe("Event Service Sub-Resource Operations", () => {
     );
     assert.equal(imported.addedCount, 2);
 
-    const updated = await eventService.updateGuest(
+    const updated = await guestService.updateGuest(
       "evt-123",
       created.guest.id,
       { rsvpStatus: "attending", tableOrSeating: "Table 4" },
@@ -337,30 +343,30 @@ describe("Event Service Sub-Resource Operations", () => {
     assert.equal(updated.guest.rsvpStatus, "attending");
     assert.equal(updated.guest.tableOrSeating, "Table 4");
 
-    await eventService.deleteGuest("evt-123", created.guest.id, "usr-456");
+    await guestService.deleteGuest("evt-123", created.guest.id, "usr-456");
     assert.ok(!mockEvent.guests.some((g) => g.id === created.guest.id));
   });
 
   /* Schedule */
   test("createScheduleItem, updateScheduleItem, and deleteScheduleItem manage run sheet", async () => {
-    const created = await eventService.createScheduleItem(
+    const created = await scheduleService.createScheduleItem(
       "evt-123",
       { startTime: "04:30 PM", activity: "Exchange of Rings", location: "Lawn" },
       "usr-456",
     );
     assert.equal(created.item.activity, "Exchange of Rings");
 
-    const updated = await eventService.updateScheduleItem("evt-123", created.item.id, { completed: true }, "usr-456");
+    const updated = await scheduleService.updateScheduleItem("evt-123", created.item.id, { completed: true }, "usr-456");
     assert.equal(updated.item.completed, true);
 
-    await eventService.deleteScheduleItem("evt-123", created.item.id, "usr-456");
+    await scheduleService.deleteScheduleItem("evt-123", created.item.id, "usr-456");
     assert.ok(!mockEvent.schedule.some((s) => s.id === created.item.id));
   });
 
   /* Posters */
   test("savePoster and deletePoster sanitize and manage saved designs", async () => {
     const validSvg = `<svg viewBox="0 0 800 1120"><text x="400" y="200">Gala</text></svg>`;
-    const saved = await eventService.savePoster(
+    const saved = await posterService.savePoster(
       "evt-123",
       { title: "Grand Gala", prompt: "Midnight stars", style: "modern", imageData: validSvg },
       "usr-456",
@@ -368,7 +374,7 @@ describe("Event Service Sub-Resource Operations", () => {
     assert.equal(saved.poster.title, "Grand Gala");
     assert.ok(saved.poster.imageData.includes("<svg"));
 
-    await eventService.deletePoster("evt-123", saved.poster.id, "usr-456");
+    await posterService.deletePoster("evt-123", saved.poster.id, "usr-456");
     assert.ok(!mockEvent.posters.some((p) => p.id === saved.poster.id));
   });
 

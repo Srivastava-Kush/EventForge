@@ -1,4 +1,10 @@
 import * as eventService from "../services/event.service.js";
+import * as taskService from "../services/task.service.js";
+import * as vendorService from "../services/vendor.service.js";
+import * as expenseService from "../services/expense.service.js";
+import * as guestService from "../services/guest.service.js";
+import * as scheduleService from "../services/schedule.service.js";
+import * as posterService from "../services/poster.service.js";
 import { sendResponse } from "../utils/sendResponse.js";
 import { HTTP_STATUS } from "../constants/httpStatus.js";
 
@@ -35,117 +41,117 @@ export async function deleteEvent(req, res) {
 }
 
 /* ==========================================================================
-   TASK CONTROLLERS
+   TASK CONTROLLERS (Delegated directly to task.service.js)
    ========================================================================== */
 
 export async function createTask(req, res) {
-  const result = await eventService.createTask(req.params.id, req.body, req.user._id);
+  const result = await taskService.createTask(req.params.id, req.body, req.user._id);
   return sendResponse(res, HTTP_STATUS.CREATED, true, result);
 }
 
 export async function updateTask(req, res) {
-  const result = await eventService.updateTask(req.params.id, req.params.taskId, req.body, req.user._id);
+  const result = await taskService.updateTask(req.params.id, req.params.taskId, req.body, req.user._id);
   return sendResponse(res, HTTP_STATUS.OK, true, result);
 }
 
 export async function deleteTask(req, res) {
-  const result = await eventService.deleteTask(req.params.id, req.params.taskId, req.user._id);
+  const result = await taskService.deleteTask(req.params.id, req.params.taskId, req.user._id);
   return sendResponse(res, HTTP_STATUS.OK, true, result);
 }
 
 /* ==========================================================================
-   VENDOR CONTROLLERS
+   VENDOR CONTROLLERS (Delegated directly to vendor.service.js)
    ========================================================================== */
 
 export async function createVendor(req, res) {
-  const result = await eventService.createVendor(req.params.id, req.body, req.user._id);
+  const result = await vendorService.createVendor(req.params.id, req.body, req.user._id);
   return sendResponse(res, HTTP_STATUS.CREATED, true, result);
 }
 
 export async function updateVendor(req, res) {
-  const result = await eventService.updateVendor(req.params.id, req.params.vendorId, req.body, req.user._id);
+  const result = await vendorService.updateVendor(req.params.id, req.params.vendorId, req.body, req.user._id);
   return sendResponse(res, HTTP_STATUS.OK, true, result);
 }
 
 export async function deleteVendor(req, res) {
-  const result = await eventService.deleteVendor(req.params.id, req.params.vendorId, req.user._id);
+  const result = await vendorService.deleteVendor(req.params.id, req.params.vendorId, req.user._id);
   return sendResponse(res, HTTP_STATUS.OK, true, result);
 }
 
 /* ==========================================================================
-   EXPENSE CONTROLLERS
+   EXPENSE CONTROLLERS (Delegated directly to expense.service.js)
    ========================================================================== */
 
 export async function createExpense(req, res) {
-  const result = await eventService.createExpense(req.params.id, req.body, req.user._id);
+  const result = await expenseService.createExpense(req.params.id, req.body, req.user._id);
   return sendResponse(res, HTTP_STATUS.CREATED, true, result);
 }
 
 export async function updateExpense(req, res) {
-  const result = await eventService.updateExpense(req.params.id, req.params.expenseId, req.body, req.user._id);
+  const result = await expenseService.updateExpense(req.params.id, req.params.expenseId, req.body, req.user._id);
   return sendResponse(res, HTTP_STATUS.OK, true, result);
 }
 
 export async function deleteExpense(req, res) {
-  const result = await eventService.deleteExpense(req.params.id, req.params.expenseId, req.user._id);
+  const result = await expenseService.deleteExpense(req.params.id, req.params.expenseId, req.user._id);
   return sendResponse(res, HTTP_STATUS.OK, true, result);
 }
 
 /* ==========================================================================
-   GUEST CONTROLLERS
+   GUEST CONTROLLERS (Delegated directly to guest.service.js)
    ========================================================================== */
 
 export async function createGuest(req, res) {
-  const result = await eventService.createGuest(req.params.id, req.body, req.user._id);
+  const result = await guestService.createGuest(req.params.id, req.body, req.user._id);
   return sendResponse(res, HTTP_STATUS.CREATED, true, result);
 }
 
 export async function updateGuest(req, res) {
-  const result = await eventService.updateGuest(req.params.id, req.params.guestId, req.body, req.user._id);
+  const result = await guestService.updateGuest(req.params.id, req.params.guestId, req.body, req.user._id);
   return sendResponse(res, HTTP_STATUS.OK, true, result);
 }
 
 export async function deleteGuest(req, res) {
-  const result = await eventService.deleteGuest(req.params.id, req.params.guestId, req.user._id);
+  const result = await guestService.deleteGuest(req.params.id, req.params.guestId, req.user._id);
   return sendResponse(res, HTTP_STATUS.OK, true, result);
 }
 
 export async function importGuests(req, res) {
-  const result = await eventService.importGuests(req.params.id, req.body.guests || req.body, req.user._id);
+  const result = await guestService.importGuests(req.params.id, req.body.guests || req.body, req.user._id);
   return sendResponse(res, HTTP_STATUS.OK, true, result);
 }
 
 /* ==========================================================================
-   SCHEDULE CONTROLLERS
+   SCHEDULE CONTROLLERS (Delegated directly to schedule.service.js)
    ========================================================================== */
 
 export async function createScheduleItem(req, res) {
-  const result = await eventService.createScheduleItem(req.params.id, req.body, req.user._id);
+  const result = await scheduleService.createScheduleItem(req.params.id, req.body, req.user._id);
   return sendResponse(res, HTTP_STATUS.CREATED, true, result);
 }
 
 export async function updateScheduleItem(req, res) {
-  const result = await eventService.updateScheduleItem(req.params.id, req.params.itemId, req.body, req.user._id);
+  const result = await scheduleService.updateScheduleItem(req.params.id, req.params.itemId, req.body, req.user._id);
   return sendResponse(res, HTTP_STATUS.OK, true, result);
 }
 
 export async function deleteScheduleItem(req, res) {
-  const result = await eventService.deleteScheduleItem(req.params.id, req.params.itemId, req.user._id);
+  const result = await scheduleService.deleteScheduleItem(req.params.id, req.params.itemId, req.user._id);
   return sendResponse(res, HTTP_STATUS.OK, true, result);
 }
 
 /* ==========================================================================
-   POSTER STUDIO CONTROLLERS
+   POSTER STUDIO CONTROLLERS (Delegated directly to poster.service.js)
    ========================================================================== */
 
 export async function getPosterSuggestions(req, res) {
-  const suggestions = await eventService.getPosterSuggestions(req.params.id, req.user._id);
+  const suggestions = await posterService.getPosterSuggestions(req.params.id, req.user._id);
   return sendResponse(res, HTTP_STATUS.OK, true, suggestions);
 }
 
 export async function generatePoster(req, res) {
   const event = await eventService.getEventById(req.params.id, req.user._id);
-  const result = await eventService.generatePosterWithAi({
+  const result = await posterService.generatePosterWithAi({
     title: req.body.title || event.plan?.summary?.eventName || event.input?.eventName,
     subtitle: req.body.subtitle || event.input?.vibe || event.type,
     date: req.body.date || event.plan?.summary?.date || event.input?.date,
@@ -164,12 +170,12 @@ export async function generatePoster(req, res) {
 }
 
 export async function savePoster(req, res) {
-  const result = await eventService.savePoster(req.params.id, req.body, req.user._id);
+  const result = await posterService.savePoster(req.params.id, req.body, req.user._id);
   return sendResponse(res, HTTP_STATUS.CREATED, true, result);
 }
 
 export async function deletePoster(req, res) {
-  const result = await eventService.deletePoster(req.params.id, req.params.posterId, req.user._id);
+  const result = await posterService.deletePoster(req.params.id, req.params.posterId, req.user._id);
   return sendResponse(res, HTTP_STATUS.OK, true, result);
 }
 
@@ -177,4 +183,3 @@ export async function generateEventIdeas(req, res) {
   const result = await eventService.generateEventIdeas(req.params.id, req.user._id);
   return sendResponse(res, HTTP_STATUS.OK, true, result);
 }
-

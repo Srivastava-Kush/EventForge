@@ -1,6 +1,6 @@
 import { chatWithAssistant } from "./llm.service.js";
 import { buildEventsSummary, buildActiveEventContext } from "../utils/promptBuilder.js";
-import { computeMetrics } from "./event.service.js";
+import { computeMetrics } from "./eventMetrics.service.js";
 import Event from "../models/Event.model.js";
 import ChatHistory from "../models/ChatHistory.model.js";
 import { AppError } from "../utils/AppError.js";

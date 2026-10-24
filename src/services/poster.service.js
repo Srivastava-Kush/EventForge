@@ -3,6 +3,7 @@ import { generatePosterWithGemini } from "./llm.service.js";
 import { sanitizeSvg } from "../utils/sanitizeSvg.js";
 import { AppError } from "../utils/AppError.js";
 import { HTTP_STATUS } from "../constants/httpStatus.js";
+import { getOwnedEvent } from "./event.service.js";
 
 /**
  * Returns suggested poster styles and prompts tailored to the specific event.
@@ -242,3 +243,36 @@ export async function deletePosterFromEvent(event, posterId) {
   await event.save();
   return { posters: event.posters };
 }
+
+/**
+ * Returns suggested poster styles and prompts tailored to the specific event.
+ * @param {string} eventId
+ * @param {string} userId
+ */
+export async function getPosterSuggestions(eventId, userId) {
+  const event = await getOwnedEvent(eventId, userId);
+  return buildPosterSuggestions(event);
+}
+
+/**
+ * Persists a generated poster design to the specified event.
+ * @param {string} eventId
+ * @param {object} posterData
+ * @param {string} userId
+ */
+export async function savePoster(eventId, posterData, userId) {
+  const event = await getOwnedEvent(eventId, userId);
+  return savePosterToEvent(event, posterData);
+}
+
+/**
+ * Deletes a saved poster design from the event.
+ * @param {string} eventId
+ * @param {string} posterId
+ * @param {string} userId
+ */
+export async function deletePoster(eventId, posterId, userId) {
+  const event = await getOwnedEvent(eventId, userId);
+  return deletePosterFromEvent(event, posterId);
+}
+
