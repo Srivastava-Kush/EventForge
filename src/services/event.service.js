@@ -5,9 +5,80 @@ import Event from "../models/Event.model.js";
 import { AppError } from "../utils/AppError.js";
 import { HTTP_STATUS } from "../constants/httpStatus.js";
 import { getDefaultSchedule, computeMetrics } from "./eventMetrics.service.js";
-import { initializeTasksFromPlan } from "./task.service.js";
-import { initializeVendorsFromPlan } from "./vendor.service.js";
-import { initializeExpensesFromPlan } from "./expense.service.js";
+
+// Domain sub-service initializers & operations
+import {
+  initializeTasksFromPlan,
+  createTask,
+  updateTask,
+  deleteTask,
+} from "./task.service.js";
+import {
+  initializeVendorsFromPlan,
+  createVendor,
+  updateVendor,
+  deleteVendor,
+} from "./vendor.service.js";
+import {
+  initializeExpensesFromPlan,
+  createExpense,
+  updateExpense,
+  deleteExpense,
+} from "./expense.service.js";
+import {
+  createGuest,
+  updateGuest,
+  deleteGuest,
+  importGuests,
+  GUEST_LIMITS,
+} from "./guest.service.js";
+import {
+  createScheduleItem,
+  updateScheduleItem,
+  deleteScheduleItem,
+} from "./schedule.service.js";
+import {
+  generateSvgPoster,
+  generatePosterWithAi,
+  generatePosterWithGemini,
+  generateRasterImageWithFlux,
+  getPosterSuggestions,
+  savePoster,
+  deletePoster,
+} from "./poster.service.js";
+
+// Re-export domain operations for seamless backwards compatibility & unified facade
+export {
+  getDefaultSchedule,
+  computeMetrics,
+  generateSvgPoster,
+  generatePosterWithAi,
+  generatePosterWithGemini,
+  generateRasterImageWithFlux,
+  getPosterSuggestions,
+  savePoster,
+  deletePoster,
+  initializeTasksFromPlan,
+  createTask,
+  updateTask,
+  deleteTask,
+  initializeVendorsFromPlan,
+  createVendor,
+  updateVendor,
+  deleteVendor,
+  initializeExpensesFromPlan,
+  createExpense,
+  updateExpense,
+  deleteExpense,
+  createGuest,
+  updateGuest,
+  deleteGuest,
+  importGuests,
+  GUEST_LIMITS,
+  createScheduleItem,
+  updateScheduleItem,
+  deleteScheduleItem,
+};
 
 // Shared ideas service instance — replaced via configureEventService()
 let _ideasService = null;
