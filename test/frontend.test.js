@@ -135,6 +135,8 @@ describe("Frontend Architecture and Accessibility (A11y) Verification", () => {
       const expense = readFrontendFile("src/components/event/ExpenseTracker.jsx");
       const vendor = readFrontendFile("src/components/event/VendorManager.jsx");
       const guest = readFrontendFile("src/components/event/GuestManager.jsx");
+      const task = readFrontendFile("src/components/event/TaskChecklist.jsx");
+      const schedule = readFrontendFile("src/components/event/EventSchedule.jsx");
 
       assert.match(expense, /role="dialog"/);
       assert.match(expense, /aria-modal="true"/);
@@ -142,6 +144,12 @@ describe("Frontend Architecture and Accessibility (A11y) Verification", () => {
       assert.match(vendor, /aria-modal="true"/);
       assert.match(guest, /role="dialog"/);
       assert.match(guest, /aria-modal="true"/);
+      assert.match(task, /role="dialog"/);
+      assert.match(task, /aria-modal="true"/);
+      assert.match(task, /Escape/);
+      assert.match(schedule, /role="dialog"/);
+      assert.match(schedule, /aria-modal="true"/);
+      assert.match(schedule, /Escape/);
     });
 
     test("ChatMessage supports interactive action recommendation cards", () => {

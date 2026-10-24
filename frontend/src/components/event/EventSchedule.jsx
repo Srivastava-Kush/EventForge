@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   MapPin,
   User,
@@ -34,6 +34,17 @@ export default function EventSchedule({
   const [formRelatedVendorId, setFormRelatedVendorId] = useState('');
   const [formNotes, setFormNotes] = useState('');
   const [formCompleted, setFormCompleted] = useState(false);
+
+  useEffect(() => {
+    if (!showModal) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setShowModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showModal]);
 
   const openAddModal = () => {
     setEditingItem(null);
@@ -211,6 +222,7 @@ export default function EventSchedule({
                         })
                       }
                       title={isCompleted ? 'Mark Pending' : 'Mark Completed'}
+                      aria-label={isCompleted ? `Mark ${item.activity} pending` : `Mark ${item.activity} completed`}
                     >
                       {isCompleted ? (
                         <CheckCircle2 size={16} className="text-success" />
@@ -223,6 +235,7 @@ export default function EventSchedule({
                       className="btn btn-ghost btn-sm p-1.5 text-muted hover:text-primary"
                       onClick={() => openEditModal(item)}
                       title="Edit milestone"
+                      aria-label={`Edit milestone: ${item.activity}`}
                     >
                       <Edit2 size={14} />
                     </button>
@@ -231,6 +244,7 @@ export default function EventSchedule({
                       className="btn btn-ghost btn-sm p-1.5 text-muted hover:text-error"
                       onClick={() => onDeleteScheduleItem(item.id)}
                       title="Delete milestone"
+                      aria-label={`Delete milestone: ${item.activity}`}
                     >
                       <Trash2 size={14} />
                     </button>
@@ -244,16 +258,25 @@ export default function EventSchedule({
 
       {/* Add / Edit Schedule Milestone Modal */}
       {showModal && (
-        <div className="modal-backdrop fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+        <div
+          className="modal-backdrop fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="schedule-modal-title"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowModal(false);
+          }}
+        >
           <div className="modal-card card max-w-lg w-full p-6 bg-card-solid border border-card shadow-lg max-h-[90vh] overflow-y-auto animate-fadeIn">
             <div className="flex items-center justify-between mb-4 border-b border-subtle pb-3">
-              <h4 className="font-bold text-lg">
+              <h4 id="schedule-modal-title" className="font-bold text-lg">
                 {editingItem ? 'Edit Itinerary Milestone' : 'Add Run Sheet Milestone'}
               </h4>
               <button
                 type="button"
                 className="btn btn-ghost p-1 text-muted hover:text-main"
                 onClick={() => setShowModal(false)}
+                aria-label="Close dialog"
               >
                 <X size={18} />
               </button>
@@ -262,10 +285,11 @@ export default function EventSchedule({
             <form onSubmit={handleSave} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="label text-xs uppercase tracking-wider text-muted font-semibold">
+                  <label htmlFor="sch-form-start-time" className="label text-xs uppercase tracking-wider text-muted font-semibold">
                     Start Time *
                   </label>
                   <input
+                    id="sch-form-start-time"
                     type="text"
                     className="input w-full"
                     placeholder="e.g. 04:00 PM"
@@ -276,10 +300,11 @@ export default function EventSchedule({
                 </div>
 
                 <div>
-                  <label className="label text-xs uppercase tracking-wider text-muted font-semibold">
+                  <label htmlFor="sch-form-end-time" className="label text-xs uppercase tracking-wider text-muted font-semibold">
                     End Time
                   </label>
                   <input
+                    id="sch-form-end-time"
                     type="text"
                     className="input w-full"
                     placeholder="e.g. 05:00 PM"
@@ -290,10 +315,11 @@ export default function EventSchedule({
               </div>
 
               <div>
-                <label className="label text-xs uppercase tracking-wider text-muted font-semibold">
+                <label htmlFor="sch-form-activity" className="label text-xs uppercase tracking-wider text-muted font-semibold">
                   Activity / Program Segment *
                 </label>
                 <input
+                  id="sch-form-activity"
                   type="text"
                   className="input w-full"
                   placeholder="e.g. Exchange of Vows & Ring Ceremony"
@@ -305,10 +331,11 @@ export default function EventSchedule({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="label text-xs uppercase tracking-wider text-muted font-semibold">
+                  <label htmlFor="sch-form-location" className="label text-xs uppercase tracking-wider text-muted font-semibold">
                     Location / Zone
                   </label>
                   <input
+                    id="sch-form-location"
                     type="text"
                     className="input w-full"
                     placeholder="e.g. Main Garden Arch or Grand Ballroom"
@@ -318,10 +345,11 @@ export default function EventSchedule({
                 </div>
 
                 <div>
-                  <label className="label text-xs uppercase tracking-wider text-muted font-semibold">
+                  <label htmlFor="sch-form-responsible" className="label text-xs uppercase tracking-wider text-muted font-semibold">
                     Responsible Lead
                   </label>
                   <input
+                    id="sch-form-responsible"
                     type="text"
                     className="input w-full"
                     placeholder="e.g. Officiant or Event Coordinator"
@@ -332,10 +360,11 @@ export default function EventSchedule({
               </div>
 
               <div>
-                <label className="label text-xs uppercase tracking-wider text-muted font-semibold">
+                <label htmlFor="sch-form-vendor" className="label text-xs uppercase tracking-wider text-muted font-semibold">
                   Coordinating Vendor (Optional)
                 </label>
                 <select
+                  id="sch-form-vendor"
                   className="input w-full text-xs"
                   value={formRelatedVendorId}
                   onChange={(e) => setFormRelatedVendorId(e.target.value)}
@@ -350,10 +379,11 @@ export default function EventSchedule({
               </div>
 
               <div>
-                <label className="label text-xs uppercase tracking-wider text-muted font-semibold">
+                <label htmlFor="sch-form-notes" className="label text-xs uppercase tracking-wider text-muted font-semibold">
                   Cues, Notes & Stage Instructions
                 </label>
                 <textarea
+                  id="sch-form-notes"
                   className="input w-full min-h-[80px]"
                   placeholder="e.g. Cue soft acoustic track 2 when bride enters..."
                   value={formNotes}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   CheckCircle2,
   Circle,
@@ -34,6 +34,17 @@ export default function TaskChecklist({ tasks = [], onToggleTask, onAddTask, onU
   const [formAssignedTo, setFormAssignedTo] = useState('');
 
   const [todayIso] = useState(() => new Date().toISOString().slice(0, 10));
+
+  useEffect(() => {
+    if (!showAddModal) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setShowAddModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showAddModal]);
 
   const filteredTasks = tasks.filter((t) => {
     if (filter === 'pending' && t.status === 'completed') return false;
@@ -254,6 +265,7 @@ export default function TaskChecklist({ tasks = [], onToggleTask, onAddTask, onU
                     className="btn btn-ghost btn-sm p-1.5 text-muted hover:text-primary"
                     onClick={() => openEditModal(task)}
                     title="Edit task"
+                    aria-label={`Edit task: ${task.title}`}
                   >
                     <Edit2 size={14} />
                   </button>
@@ -262,6 +274,7 @@ export default function TaskChecklist({ tasks = [], onToggleTask, onAddTask, onU
                     className="btn btn-ghost btn-sm p-1.5 text-muted hover:text-error"
                     onClick={() => onDeleteTask(task.id)}
                     title="Delete task"
+                    aria-label={`Delete task: ${task.title}`}
                   >
                     <Trash2 size={14} />
                   </button>
@@ -274,14 +287,25 @@ export default function TaskChecklist({ tasks = [], onToggleTask, onAddTask, onU
 
       {/* Add / Edit Task Modal */}
       {showAddModal && (
-        <div className="modal-backdrop fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+        <div
+          className="modal-backdrop fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="task-modal-title"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowAddModal(false);
+          }}
+        >
           <div className="modal-card card max-w-lg w-full p-6 bg-card-solid border border-card shadow-lg animate-fadeIn">
             <div className="flex items-center justify-between mb-4 border-b border-subtle pb-3">
-              <h4 className="font-bold text-lg">{editingTask ? 'Edit Task' : 'Add New Task'}</h4>
+              <h4 id="task-modal-title" className="font-bold text-lg">
+                {editingTask ? 'Edit Task' : 'Add New Task'}
+              </h4>
               <button
                 type="button"
                 className="btn btn-ghost p-1 text-muted hover:text-main"
                 onClick={() => setShowAddModal(false)}
+                aria-label="Close dialog"
               >
                 <X size={18} />
               </button>
@@ -289,10 +313,11 @@ export default function TaskChecklist({ tasks = [], onToggleTask, onAddTask, onU
 
             <form onSubmit={handleSave} className="space-y-4">
               <div>
-                <label className="label text-xs uppercase tracking-wider text-muted font-semibold">
+                <label htmlFor="task-title-input" className="label text-xs uppercase tracking-wider text-muted font-semibold">
                   Task Title *
                 </label>
                 <input
+                  id="task-title-input"
                   type="text"
                   className="input w-full"
                   placeholder="e.g. Confirm wedding cake tasting flavors"
@@ -304,10 +329,11 @@ export default function TaskChecklist({ tasks = [], onToggleTask, onAddTask, onU
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="label text-xs uppercase tracking-wider text-muted font-semibold">
+                  <label htmlFor="task-phase-select" className="label text-xs uppercase tracking-wider text-muted font-semibold">
                     Planning Phase
                   </label>
                   <select
+                    id="task-phase-select"
                     className="input w-full"
                     value={formPhase}
                     onChange={(e) => setFormPhase(e.target.value)}
@@ -321,10 +347,11 @@ export default function TaskChecklist({ tasks = [], onToggleTask, onAddTask, onU
                 </div>
 
                 <div>
-                  <label className="label text-xs uppercase tracking-wider text-muted font-semibold">
+                  <label htmlFor="task-due-date-input" className="label text-xs uppercase tracking-wider text-muted font-semibold">
                     Due Date
                   </label>
                   <input
+                    id="task-due-date-input"
                     type="date"
                     className="input w-full"
                     value={formDueDate}
@@ -335,10 +362,11 @@ export default function TaskChecklist({ tasks = [], onToggleTask, onAddTask, onU
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="label text-xs uppercase tracking-wider text-muted font-semibold">
+                  <label htmlFor="task-assigned-to-input" className="label text-xs uppercase tracking-wider text-muted font-semibold">
                     Assigned Person
                   </label>
                   <input
+                    id="task-assigned-to-input"
                     type="text"
                     className="input w-full"
                     placeholder="e.g. Alex or Host"
@@ -362,10 +390,11 @@ export default function TaskChecklist({ tasks = [], onToggleTask, onAddTask, onU
               </div>
 
               <div>
-                <label className="label text-xs uppercase tracking-wider text-muted font-semibold">
+                <label htmlFor="task-notes-input" className="label text-xs uppercase tracking-wider text-muted font-semibold">
                   Notes & Details
                 </label>
                 <textarea
+                  id="task-notes-input"
                   className="input w-full min-h-[80px]"
                   placeholder="Add specific instructions, contact references, or checklists..."
                   value={formNotes}
