@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { Calendar, LayoutDashboard, PlusCircle, LogOut, User as UserIcon } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, LogOut, User as UserIcon } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.js';
 import ThemeToggle from './ThemeToggle.jsx';
 
@@ -17,9 +17,13 @@ export default function Navbar() {
     <header className="navbar" role="banner">
       <div className="container nav-content">
         <Link to="/" className="brand-logo" aria-label="EventForge - Home">
-          <div className="brand-icon" aria-hidden="true">
-            <Calendar size={22} />
-          </div>
+          <img
+            src="/favicon.svg"
+            alt="EventForge logo"
+            width="32"
+            height="32"
+            className="brand-icon-svg"
+          />
           <span className="brand-name">EventForge</span>
         </Link>
 

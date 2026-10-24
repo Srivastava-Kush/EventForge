@@ -40,6 +40,19 @@
   box-shadow: 0 4px 12px var(--color-primary-glow);
 }
 
+.brand-icon-svg {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 10px rgba(124, 58, 237, 0.35));
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
+}
+
+.brand-logo:hover .brand-icon-svg {
+  transform: scale(1.1) rotate(-3deg);
+}
+
 .brand-name {
   font-weight: 800;
   letter-spacing: -0.02em;
