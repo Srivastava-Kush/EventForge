@@ -7,8 +7,8 @@ import { getOwnedEvent } from "./event.service.js";
 
 /**
  * Transforms planned vendor categories into interactive vendor subdocuments.
- * @param {Array<object>} [planVendors=[]]
- * @returns {Array<object>}
+ * @param {any[]} [planVendors=[]]
+ * @returns {any[]}
  */
 export function initializeVendorsFromPlan(planVendors = []) {
   return (planVendors || []).map((v) => ({
@@ -35,9 +35,9 @@ export function initializeVendorsFromPlan(planVendors = []) {
 /**
  * Creates a vendor subdocument under the target event.
  * @param {string} eventId
- * @param {object} vendorData
+ * @param {any} vendorData
  * @param {string} userId
- * @returns {Promise<{ vendor: object, metrics: object }>}
+ * @returns {Promise<{ vendor: any, metrics: any }>}
  */
 export async function createVendor(eventId, vendorData, userId) {
   const event = await getOwnedEvent(eventId, userId);
@@ -75,9 +75,9 @@ export async function createVendor(eventId, vendorData, userId) {
  * Updates an existing vendor subdocument.
  * @param {string} eventId
  * @param {string} vendorId
- * @param {object} updates
+ * @param {any} updates
  * @param {string} userId
- * @returns {Promise<{ vendor: object, metrics: object }>}
+ * @returns {Promise<{ vendor: any, metrics: any }>}
  */
 export async function updateVendor(eventId, vendorId, updates, userId) {
   const event = await getOwnedEvent(eventId, userId);

@@ -7,7 +7,7 @@ export class AppError extends Error {
   /**
    * @param {string} message   User-facing error message.
    * @param {number} statusCode HTTP status code (default 500).
-   * @param {Array}  errors     Optional field-level errors array.
+   * @param {any[]}  [errors]   Optional field-level errors array.
    */
   constructor(message, statusCode = 500, errors = []) {
     super(message);

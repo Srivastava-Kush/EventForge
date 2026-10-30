@@ -8,7 +8,7 @@
  * @param {boolean} success     true for success, false for error
  * @param {*}       data        Payload for success responses
  * @param {string}  [message]   Message for error responses
- * @param {Array}   [errors]    Field-level errors
+ * @param {any[]}   [errors]    Field-level errors
  */
 export function sendResponse(res, statusCode, success, data = null, message = "", errors = []) {
   if (success) {

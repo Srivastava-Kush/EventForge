@@ -40,8 +40,8 @@ export function buildEventsSummary(events) {
 /**
  * Builds real-time context for the active event currently in focus.
  * Injects current expenses spent, overdue tasks, booked vendors, and RSVP headcount.
- * @param {object} event
- * @param {object} metrics
+ * @param {any} event
+ * @param {any} [metrics]
  * @returns {string}
  */
 export function buildActiveEventContext(event, metrics) {

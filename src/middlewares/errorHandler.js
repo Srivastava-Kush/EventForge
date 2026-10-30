@@ -83,7 +83,7 @@ export function errorHandler(err, req, res, _next) {
   }
 
   // Unknown / programming error — log and return generic message
-  console.error("[errorHandler] Unexpected error:", err);
+  console.error(`[errorHandler] Unexpected error [${req?.id || "unknown"}]:`, err);
   return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
     success: false,
     message: "Something went wrong. Please try again.",

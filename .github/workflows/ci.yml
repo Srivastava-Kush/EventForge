@@ -21,6 +21,8 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: npm
       - run: npm ci
-      - run: npm run lint
-      - run: npm run test:coverage
+      - run: npm run check
+      - run: npm --prefix frontend ci
+      - run: npm --prefix frontend run lint
+      - run: npm --prefix frontend run build
       - run: npm audit --omit=dev --audit-level=high

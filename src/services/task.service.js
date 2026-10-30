@@ -7,8 +7,8 @@ import { getOwnedEvent } from "./event.service.js";
 
 /**
  * Transforms planned timeline tasks into interactive task subdocuments.
- * @param {Array<object>} [planTasks=[]]
- * @returns {Array<object>}
+ * @param {any[]} [planTasks=[]]
+ * @returns {any[]}
  */
 export function initializeTasksFromPlan(planTasks = []) {
   return (planTasks || []).map((t) => ({
@@ -27,9 +27,9 @@ export function initializeTasksFromPlan(planTasks = []) {
 /**
  * Creates a custom task under the target event.
  * @param {string} eventId
- * @param {object} taskData
+ * @param {any} taskData
  * @param {string} userId
- * @returns {Promise<{ task: object, metrics: object }>}
+ * @returns {Promise<{ task: any, metrics: any }>}
  */
 export async function createTask(eventId, taskData, userId) {
   const event = await getOwnedEvent(eventId, userId);
@@ -60,9 +60,9 @@ export async function createTask(eventId, taskData, userId) {
  * Updates an existing task subdocument.
  * @param {string} eventId
  * @param {string} taskId
- * @param {object} updates
+ * @param {any} updates
  * @param {string} userId
- * @returns {Promise<{ task: object, metrics: object }>}
+ * @returns {Promise<{ task: any, metrics: any }>}
  */
 export async function updateTask(eventId, taskId, updates, userId) {
   const event = await getOwnedEvent(eventId, userId);

@@ -16,9 +16,10 @@
     "client": "npm --prefix frontend run dev",
     "client:build": "npm --prefix frontend run build",
     "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
     "test": "node --test",
     "test:coverage": "node --test --experimental-test-coverage --test-coverage-lines=75 --test-coverage-branches=70 --test-coverage-functions=75",
-    "check": "npm run lint && npm run test:coverage"
+    "check": "npm run lint && npm run typecheck && npm run test:coverage"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.131.0",
@@ -38,8 +39,16 @@
   "license": "MIT",
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/compression": "^1.8.1",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^26.6.5",
     "eslint": "10.11.0",
     "globals": "17.12.0",
-    "jsdom": "29.1.1"
+    "jsdom": "29.1.1",
+    "typescript": "^7.0.2"
   }
 }

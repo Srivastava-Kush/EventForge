@@ -6,6 +6,7 @@ const MAX_YEARS_AHEAD = 5;
 const TIME_ZONE_GRACE_DAYS = 1;
 
 // Free text: strip control characters (keeping newlines) and trim
+/** @param {number} max */
 const freeText = (max) =>
   z
     .string()
@@ -15,6 +16,10 @@ const freeText = (max) =>
     .pipe(z.string().max(max))
     .default("");
 
+/**
+ * @param {any} values
+ * @param {number} max
+ */
 const uniqueList = (values, max) =>
   z
     .array(z.enum(values))

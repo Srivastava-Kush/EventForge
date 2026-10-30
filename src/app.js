@@ -13,6 +13,9 @@ import { sanitizeInputs } from "./middlewares/mongoSanitize.middleware.js";
 import { createIdeasService } from "./services/llm.service.js";
 import { configureEventService } from "./services/event.service.js";
 
+import { requestIdMiddleware } from "./middlewares/requestId.middleware.js";
+import openapiSpec from "./docs/openapi.js";
+
 // Routes
 import authRoutes from "./routes/auth.routes.js";
 import eventRoutes from "./routes/event.routes.js";
@@ -54,6 +57,9 @@ export function createApp(options = {}) {
     app.set("trust proxy", 1);
   }
 
+  // Correlation ID: assign unique X-Request-Id for distributed tracing
+  app.use(requestIdMiddleware);
+
   // Security: Helmet HTTP security headers
   app.use(
     helmet({
@@ -83,7 +89,8 @@ export function createApp(options = {}) {
       origin: allowedOrigins,
       credentials: true,
       methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-      allowedHeaders: ["Content-Type", "Authorization"],
+      allowedHeaders: ["Content-Type", "Authorization", "X-Request-Id"],
+      exposedHeaders: ["X-Request-Id"],
     }),
   );
 
@@ -111,6 +118,39 @@ export function createApp(options = {}) {
   // Health check endpoints (Cloud standard: /healthz and /api/health)
   app.get(["/api/health", "/healthz"], (req, res) => {
     res.status(HTTP_STATUS.OK).json({ success: true, data: { status: "ok" } });
+  });
+
+  // OpenAPI 3.1 & Interactive Swagger UI
+  app.get("/api/docs/openapi.json", (req, res) => {
+    res.setHeader("Content-Type", "application/json");
+    res.status(HTTP_STATUS.OK).json(openapiSpec);
+  });
+
+  app.get("/api/docs", (req, res) => {
+    res.setHeader("Content-Type", "text/html");
+    res.status(HTTP_STATUS.OK).send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EventForge API Docs</title>
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui.css" />
+</head>
+<body>
+  <div id="swagger-ui"></div>
+  <script src="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui-bundle.js" crossorigin></script>
+  <script>
+    window.onload = () => {
+      window.ui = SwaggerUIBundle({
+        url: '/api/docs/openapi.json',
+        dom_id: '#swagger-ui',
+        deepLinking: true,
+        presets: [SwaggerUIBundle.presets.apis],
+      });
+    };
+  </script>
+</body>
+</html>`);
   });
 
   // 404 for unmatched API routes
